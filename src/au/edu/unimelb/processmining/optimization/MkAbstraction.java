@@ -1,15 +1,17 @@
 /*
 package au.edu.unimelb.processmining.optimization;
+
 import dk.brics.automaton.Automaton;
 import dk.brics.automaton.BasicAutomata;
 import dk.brics.automaton.BasicOperations;
-import org.processmining.framework.models.pt.ProcessTree;
+import org.processmining.processtree.ProcessTree;
+import javax.
 
 public class MkAbstraction {
 
     public static Automaton computeMk(ProcessTree pt, int k) {
         if (pt.isLeaf()) {
-            String label = pt.getLabel();
+            String label = pt.getName();
             if (label == null || label.isEmpty()) {
                 return BasicAutomata.makeEmptyString(); // ε
             } else {

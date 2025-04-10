@@ -109,6 +109,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                 iterations++;
                 iTime = System.currentTimeMillis();
 
+                long mineStart = System.nanoTime();
                 if( currentAccuracy[1] > currentAccuracy[0] ) {
 /**     if precision is higher than fitness, we explore the DFGs having more edges.
  *      to do so, we select the most frequent edges of the markovian abstraction of the log that do not appear
@@ -151,6 +152,8 @@ public class IteratedLocalSearch implements Metaheuristics {
                         }
                     }
                 }
+                long mineEnd = System.nanoTime();
+                totalMineTime += (mineEnd - mineStart);
 
 //                System.out.println("INFO - selected " + neighbours.size() + " neighbours.");
 
@@ -163,17 +166,16 @@ public class IteratedLocalSearch implements Metaheuristics {
                 multiThreadService = Executors.newFixedThreadPool(neighbours.size());
                 for( SimpleDirectlyFollowGraph neighbourSDFG : neighbours ) {
                     try {
-                        long mineStart = System.nanoTime();
+                        long modifyStart = System.nanoTime();
                         tmpBPMN = minerProxy.getBPMN(neighbourSDFG);
-                        long mineEnd = System.nanoTime();
-                        totalMineTime += (mineEnd - mineStart);
+                        long modifyEnd = System.nanoTime();
+                        totalModifyTime += (modifyEnd - modifyStart);
                     }
                     catch(Exception e) { System.out.println("WARNING - discarded one neighbour."); continue; }
 
-                    long modifyStart = System.nanoTime();
+
                     evalThread = new MarkovianBasedEvaluator(staLog, slog, minerProxy, tmpBPMN, order);
-                    long modifyEnd = System.nanoTime();
-                    totalModifyTime += (modifyEnd - modifyStart);
+
 
                     long computeStart = System.nanoTime();
                     evalResult = multiThreadService.submit(evalThread);
@@ -256,29 +258,24 @@ public class IteratedLocalSearch implements Metaheuristics {
         long mineStart, mineEnd, modifyStart, modifyEnd, computeStart, computeEnd;
 
         try {
-            // Mine Phase
-            mineStart = System.nanoTime();
+            // Modify Phase
+            modifyStart = System.nanoTime();
             currentSDFG = minerProxy.restart(slog);
             if(currentSDFG == null) return;
 
             tmpBPMN = minerProxy.getBPMN(currentSDFG);
-            mineEnd = System.nanoTime();
-            initialMineTime = mineEnd - mineStart;
-
-            // Modify Phase
-            modifyStart = System.nanoTime();
-            markovianBasedEvaluator = new MarkovianBasedEvaluator(staLog, slog, minerProxy, tmpBPMN, order);
-            executor = Executors.newSingleThreadExecutor();
-            evalResult = executor.submit(markovianBasedEvaluator);
             modifyEnd = System.nanoTime();
             initialModifyTime = modifyEnd - modifyStart;
 
-            // Compute Phase
+            markovianBasedEvaluator = new MarkovianBasedEvaluator(staLog, slog, minerProxy, tmpBPMN, order);
+            executor = Executors.newSingleThreadExecutor();
+            evalResult = executor.submit(markovianBasedEvaluator);
 
+            // Compute Phase
             computeStart = System.nanoTime();
             result = evalResult.get(minerProxy.getTimeout(), TimeUnit.MILLISECONDS);
             computeEnd = System.nanoTime();
-            initialComputeTime = computeEnd -computeStart;
+            initialComputeTime = computeEnd - computeStart;
 
             currentAccuracy[0] = (Double)result[0];
             currentAccuracy[1] = (Double)result[1];
