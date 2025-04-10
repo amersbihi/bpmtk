@@ -33,6 +33,10 @@ public class IteratedLocalSearch implements Metaheuristics {
     private PrintWriter writer;
     private int perturbations;
 
+    private long initialMineTime;
+    private long initialModifyTime;
+    private long initialComputeTime;
+
     public IteratedLocalSearch(MinerProxy proxy) {
         minerProxy = proxy;
     }
@@ -70,10 +74,18 @@ public class IteratedLocalSearch implements Metaheuristics {
             writer.println("iteration,fitness,precision,fscore,itime");
         } catch(Exception e) { e.printStackTrace(); System.out.println("ERROR - impossible to print the markovian abstraction."); }
 
+        // accumulators for mine, modify and compute
+        long totalMineTime = 0;
+        long totalModifyTime = 0;
+        long totalComputeTime = 0;
+
         long eTime = System.currentTimeMillis();
         long iTime = System.currentTimeMillis();
 
         start(slog, order);
+        totalMineTime = initialMineTime;
+        totalModifyTime = initialModifyTime;
+        totalComputeTime = initialComputeTime;
         bestScores.add(currentAccuracy[2]);
         hits.add(iterations);
         bestSDFG = currentSDFG;
@@ -150,10 +162,24 @@ public class IteratedLocalSearch implements Metaheuristics {
 
                 multiThreadService = Executors.newFixedThreadPool(neighbours.size());
                 for( SimpleDirectlyFollowGraph neighbourSDFG : neighbours ) {
-                    try { tmpBPMN = minerProxy.getBPMN(neighbourSDFG); }
+                    try {
+                        long mineStart = System.nanoTime();
+                        tmpBPMN = minerProxy.getBPMN(neighbourSDFG);
+                        long mineEnd = System.nanoTime();
+                        totalMineTime += (mineEnd - mineStart);
+                    }
                     catch(Exception e) { System.out.println("WARNING - discarded one neighbour."); continue; }
+
+                    long modifyStart = System.nanoTime();
                     evalThread = new MarkovianBasedEvaluator(staLog, slog, minerProxy, tmpBPMN, order);
+                    long modifyEnd = System.nanoTime();
+                    totalModifyTime += (modifyEnd - modifyStart);
+
+                    long computeStart = System.nanoTime();
                     evalResult = multiThreadService.submit(evalThread);
+                    long computeEnd = System.nanoTime();
+                    totalComputeTime += (computeEnd - computeStart);
+
                     neighboursEvaluations.put(neighbourSDFG, evalResult);
                 }
 
@@ -198,6 +224,10 @@ public class IteratedLocalSearch implements Metaheuristics {
             }
         }
 
+        System.out.println("Total Mine Time: " + totalMineTime / 1_000_000 + "ms");
+        System.out.println("Total Modify Time: " + totalModifyTime / 1_000_000 + "ms");
+        System.out.println("Total Compute Time: " + totalComputeTime / 1_000_000 + "ms");
+
         eTime = System.currentTimeMillis() - eTime;
         String hitrow = "";
         String fscorerow = "";
@@ -233,7 +263,7 @@ public class IteratedLocalSearch implements Metaheuristics {
 
             tmpBPMN = minerProxy.getBPMN(currentSDFG);
             mineEnd = System.nanoTime();
-            System.out.println("[Time] Mine phase:" + (mineEnd - mineStart) / 1_000_000 + "ms");
+            initialMineTime = mineEnd - mineStart;
 
             // Modify Phase
             modifyStart = System.nanoTime();
@@ -241,14 +271,14 @@ public class IteratedLocalSearch implements Metaheuristics {
             executor = Executors.newSingleThreadExecutor();
             evalResult = executor.submit(markovianBasedEvaluator);
             modifyEnd = System.nanoTime();
-            System.out.println("[Time] Modify phase:" + (modifyEnd - modifyStart) / 1_000_000 + "ms");
+            initialModifyTime = modifyEnd - modifyStart;
 
             // Compute Phase
 
             computeStart = System.nanoTime();
             result = evalResult.get(minerProxy.getTimeout(), TimeUnit.MILLISECONDS);
             computeEnd = System.nanoTime();
-            System.out.println("[Time] Compute phase:" + (computeEnd - computeStart) / 1_000_000 + "ms");
+            initialComputeTime = computeEnd -computeStart;
 
             currentAccuracy[0] = (Double)result[0];
             currentAccuracy[1] = (Double)result[1];
