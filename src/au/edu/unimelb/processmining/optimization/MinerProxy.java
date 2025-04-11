@@ -116,7 +116,7 @@ public class MinerProxy {
             case IM:
 //                System.out.println("DEBUG - IM ready to go");
                 inductive = new IMdProxy();
-                timeout = 20000;
+                timeout = 50000;
                 params = new ArrayList<>();
                 for(int i=2; i < 6; i++)
                     for(int j=1; j < 4; j++)

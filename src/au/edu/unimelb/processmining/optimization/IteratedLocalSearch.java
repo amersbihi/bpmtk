@@ -185,7 +185,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     neighboursEvaluations.put(neighbourSDFG, evalResult);
                 }
 
-                sleep(100);
+                sleep(0);
 
                 improved = false;
                 for( SimpleDirectlyFollowGraph neighbourSDFG : neighboursEvaluations.keySet() ) {

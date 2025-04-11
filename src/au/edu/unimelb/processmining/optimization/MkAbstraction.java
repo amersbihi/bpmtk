@@ -1,34 +1,32 @@
 /*
 package au.edu.unimelb.processmining.optimization;
 
-import dk.brics.automaton.Automaton;
-import dk.brics.automaton.BasicAutomata;
-import dk.brics.automaton.BasicOperations;
-import org.processmining.processtree.ProcessTree;
-import javax.
+import dk.brics.automaton.*;
+import org.processmining.processtree.*;
+
 
 public class MkAbstraction {
 
-    public static Automaton computeMk(ProcessTree pt, int k) {
-        if (pt.isLeaf()) {
+    public static Automaton computeMk(ProcessTree pt, Node node) {
+        if (node.isLeaf()) {
             String label = pt.getName();
             if (label == null || label.isEmpty()) {
-                return BasicAutomata.makeEmptyString(); // ε
+                return BasicAutomata.makeEmptyString();
             } else {
                 return BasicAutomata.makeString(label);
             }
-        } else if (pt.getOperator().equals(ProcessTree.Operator.XOR)) {
+        } else if (node.getType().equals(ProcessTree.Type.XOR)) {
             Automaton result = null;
             for (ProcessTree child : pt.getChildren()) {
-                Automaton childAuto = computeMk(child, k);
+                Automaton childAuto = computeMk(child);
                 result = (result == null) ? childAuto : BasicOperations.union(result, childAuto);
             }
             result.determinize();
             return result;
-        } else if (pt.getOperator().equals(ProcessTree.Operator.SEQ)) {
-            Automaton result = BasicAutomata.makeEmptyString(); // identity for concatenation
+        } else if (pt.getType().equals(ProcessTree.Type.SEQ)) {
+            Automaton result = BasicAutomata.makeEmptyString();
             for (ProcessTree child : pt.getChildren()) {
-                Automaton childAuto = computeMk(child, k);
+                Automaton childAuto = computeMk(child);
                 result = BasicOperations.concatenate(result, childAuto);
             }
             result.determinize();
@@ -37,4 +35,5 @@ public class MkAbstraction {
             throw new UnsupportedOperationException("Only LEAF, XOR, and SEQ are supported so far.");
         }
     }
-}*/
+}
+*/
