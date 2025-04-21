@@ -111,112 +111,91 @@ public class MkAbstraction {
         b.expandSingleton();
 
         State q0A = a.getInitialState();
+        State q0B = b.getInitialState();
         State qAPlus = q0A.step('+');
+        State qBPlus = q0B.step('+');
         State qfA = a.getAcceptStates().iterator().next();
+        State qfB = b.getAcceptStates().iterator().next();
 
-        // make epsilon transition to start state of b
-        // List<StatePair> p = new ArrayList<>();
-        // p.add(new StatePair(a.getInitialState(),b.getInitialState()));
-        // a.addEpsilons(p);
+        // Step 1: Create ε-transition from q0A to q0B
+        a.addEpsilons(Collections.singletonList(new StatePair(q0A, q0B)));
 
+        // Step 2: Find Qa- and Qb- sets
+        Set<State> QaMinus = findQMinusSet(a, qfA);
+        Set<State> QbMinus = findQMinusSet(a, qfB);
 
-        UnionResult result = uniteStateSpaces(a, b);
+        // Step 3: Build all ε-transitions together
+        List<StatePair> epsilonPairs = new ArrayList<>();
 
-        Automaton retAutomaton = result.automaton;
-        State q0B = result.copiedBInitial;
-        State qbPlus = result.copiedBQPlus;
-        State qfB = result.copiedBFinal;
-
-        // find both Q- sets
-        Set<State> QaMinus = findQMinusSet(retAutomaton, qfA);
-        Set<State> QbMinus = findQMinusSet(retAutomaton, qfB);
-
-        // create ε-transitions from each Q- state to q+ state
-        List<StatePair> pairs = new ArrayList<>();
         for (State s : QaMinus) {
-            pairs.add(new StatePair(s, qbPlus));
+            epsilonPairs.add(new StatePair(s, qBPlus));
         }
-        q0B.getTransitions().removeIf(t -> t.getMin() == '+');
-        retAutomaton.addEpsilons(pairs);
-
         for (State s : QbMinus) {
-            pairs.add(new StatePair(s, qAPlus));
+            epsilonPairs.add(new StatePair(s, qAPlus));
 
-            List<Transition> toRemove = new ArrayList<>();
-            for (Transition t : s.getTransitions()) {
-                if (t.getDest().equals(qfB) && t.getMin() == '-') {
-                    toRemove.add(t);
-                }
-            }
-            s.getTransitions().removeAll(toRemove);
+            // Remove '-' transitions to qfB
+            s.getTransitions().removeIf(t -> t.getDest().equals(qfB) && t.getMin() == '-');
         }
-        retAutomaton.addEpsilons(pairs);
 
-        // create transitions from initial state q0A to states reachable by initial state q0B
-        redirectInitialTransitions(q0A, q0B, qbPlus);
+        a.addEpsilons(epsilonPairs);
 
+        // Step 4: Remove '+' transitions from q0A to qBPlus
+        q0A.getTransitions().removeIf(t -> t.getDest().equals(qBPlus) && t.getMin() == '+');
+
+        // Step 5: Redirect initial transitions from q0A to q0B successors (except qBPlus)
+        redirectInitialTransitions(q0A, q0B, qBPlus);
+
+        // Step 6: Clear transitions from q0B and clean up
         q0B.getTransitions().clear();
-        retAutomaton.removeDeadTransitions();
-        retAutomaton.setDeterministic(false);
-        retAutomaton.determinize();
-        retAutomaton.minimize();
+        a.removeDeadTransitions();
+        a.setDeterministic(false);
+        a.determinize();
+        a.minimize();
 
-        return retAutomaton;
+        return a;
     }
 
     public static Automaton mkSequence(Automaton a, Automaton b) {
-
-        //if (a.isSingleton() && b.isSingleton()) {
         a.expandSingleton();
         b.expandSingleton();
 
         State q0A = a.getInitialState();
+        State q0B = b.getInitialState();
+        State qbPlus = q0B.step('+');
         State qfA = a.getAcceptStates().iterator().next();
 
-        // unite Statespace and Transitions
-        UnionResult result = uniteStateSpaces(a, b);
+        // Step 1: Create ε-transition from q0A to q0B
+        a.addEpsilons(Collections.singletonList(new StatePair(q0A, q0B)));
 
-        Automaton retAutomaton = result.automaton;
-        State q0B = result.copiedBInitial;
-        State qbPlus = result.copiedBQPlus;
+        // Step 2: Find Qa- states (states reaching qfA with '-')
+        Set<State> QaMinus = findQMinusSet(a, qfA);
 
-        // create transitions from initial state q0A to states reachable by initial state q0B
-        redirectInitialTransitions(q0A, q0B, qbPlus);
-
-        // Find Qa- states with a '-' transition to qfa by using a reversed map
-        Set<State> QaMinus = findQMinusSet(retAutomaton, qfA);
-
-        // create Transactions from States in QA- to states reachable from qb+ and remove their connection to qfa
+        // Step 3: Create transitions from Qa- to successors of qbPlus
         if (qbPlus != null) {
             for (State qMinus : QaMinus) {
-                List<Transition> toRemove = new ArrayList<>();
-
-                // 1. add new transitions from qbPlus
+                // 1. Add transitions from qbPlus to qMinus
                 for (Transition t : qbPlus.getTransitions()) {
                     qMinus.addTransition(new Transition(t.getMin(), t.getDest()));
                 }
-
-                // 2. collect invalid '-' transitions to qfA
-                for (Transition t : qMinus.getTransitions()) {
-                    if (t.getDest().equals(qfA) && t.getMin() == '-') {
-                        toRemove.add(t);
-                    }
-                }
-
-                // 3. remove the transitions to qfa
-                qMinus.getTransitions().removeAll(toRemove);
+                // 2. Remove '-' transitions from qMinus to qfA
+                qMinus.getTransitions().removeIf(t -> t.getDest().equals(qfA) && t.getMin() == '-');
             }
         }
 
-        // set q0b as dead state and remove outgoing transitions
-        q0B.getTransitions().clear();
-        retAutomaton.removeDeadTransitions();
-        retAutomaton.setInitialState(q0A);
-        retAutomaton.setDeterministic(false);
-        retAutomaton.determinize();
-        retAutomaton.minimize();
+        // Step 4: Remove '+' transitions from q0A to qBPlus
+        q0A.getTransitions().removeIf(t -> t.getDest().equals(qbPlus) && t.getMin() == '+');
 
-        return retAutomaton;
+        // Step 5: Create transitions from q0A to successors of q0B
+        redirectInitialTransitions(q0A, q0B, qbPlus);
+
+        // Step 6: Clear transitions from q0B and clean up
+        q0B.getTransitions().clear();
+        a.removeDeadTransitions();
+        a.setDeterministic(false);
+        a.determinize();
+        a.minimize();
+
+        return a;
     }
 
     // Redirects transitions from q0A to states reachable from q0B, excluding transitions to qbPlus.
@@ -253,8 +232,9 @@ public class MkAbstraction {
 
         return qMinusStates;
     }
+}
 
-    public static class UnionResult {
+    /*public static class UnionResult {
         public final Automaton automaton;
         public final State copiedBInitial;
         public final State copiedBQPlus;
@@ -299,3 +279,4 @@ public class MkAbstraction {
                 stateMapping.get(b.getAcceptStates().iterator().next()));
     }
 }
+*/
