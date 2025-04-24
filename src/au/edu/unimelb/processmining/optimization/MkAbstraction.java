@@ -2,7 +2,9 @@ package au.edu.unimelb.processmining.optimization;
 
 import dk.brics.automaton.*;
 import org.processmining.processtree.*;
+
 import java.util.*;
+
 import static dk.brics.automaton.SpecialOperations.*;
 
 
@@ -15,7 +17,7 @@ public class MkAbstraction {
         // Automaton test = mkSequence(mkLeafNode('b'), mkLeafNode('c'));
         // Automaton test = mkExclusive(mkLeafNode('a'), mkLeafNode('τ'));
         // Automaton test = mkLoop(mkSequence(mkLeafNode('b'), mkLeafNode('c')), mkExclusive(mkLeafNode('a'), mkLeafNode('τ')))
-        Automaton test = mkParallel(mkLoop(mkSequence(mkLeafNode('b'), mkLeafNode('c')), mkExclusive(mkLeafNode('a'), mkLeafNode('τ'))),mkLeafNode('d'));
+        Automaton test = mkParallel(mkLoop(mkSequence(mkLeafNode('b'), mkLeafNode('c')), mkExclusive(mkLeafNode('a'), mkLeafNode('τ'))), mkLeafNode('d'));
 
         // Output accepted language up to length 5
         System.out.println("Accepted language:");
@@ -35,23 +37,21 @@ public class MkAbstraction {
     }
 
     public static Automaton computeMk(ProcessTree pt) {
-        if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.MANTASK) ||
-                pt.getType(pt.getRoot()).equals(ProcessTree.Type.TIMEOUT)) {
+        if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.MANTASK)) {
             char label = pt.getName().charAt(0);
             if (label == 'τ') {
                 return mkLeafNode('τ');
             } else {
                 return mkLeafNode(label);
             }
-            // find out how to get both children
         } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.XOR)) {
-            // return mkExclusive(computeMk(pt.getTarget()), computeMk(pt.));
+            // mkExclusive(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
         } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.SEQ)) {
-            // return mkSequence(computeMk(pt.), computeMk(pt.));
+            // return mkSequence(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
         } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.LOOPDEF)) {     // not sure whether this represents Loop
-            // return mkLoop(computeMk(pt.), computeMk(pt.));
-        } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.AND)){
-            // return mkParallel(computeMk(pt.), computeMk(pt.));
+            // return mkLoop(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
+        } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.AND)) {
+            // return mkParallel(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
         }
         return null;
     }
@@ -199,59 +199,72 @@ public class MkAbstraction {
         State qfA = a.getAcceptStates().iterator().next();
         State qfB = b.getAcceptStates().iterator().next();
 
-        // Step 1: add '-' transitions from initial to final
+        // Step 1: Add '-' transitions from initial to final (partial execution support)
         q0A.addTransition(new Transition('-', qfA));
         q0B.addTransition(new Transition('-', qfB));
 
-        // Step 2: make all states accepting (to support partial executions)
-        for (State s : a.getStates()) {
-            s.setAccept(true);
-        }
-        for (State s : b.getStates()) {
-            s.setAccept(true);
-        }
+        // Step 2: Set all states to accepting to allow partial merging
+        for (State s : a.getStates()) s.setAccept(true);
+        for (State s : b.getStates()) s.setAccept(true);
 
-        // Step 3: create Mk Automaton
-        Automaton mk = createMKAutomaton();
+        // Step 3: Create Mk automaton from joint alphabet
+        Set<Character> alphabet = new HashSet<>();
+        alphabet.addAll(getAlphabet(a));
+        alphabet.addAll(getAlphabet(b));
+
+        Automaton mk = createMKAutomaton(alphabet);
         State q0MK = mk.getInitialState();
 
-        // Step 4: Initialize result Automaton
+        // Step 4: Initialize result automaton and state tracking
         Automaton result = new Automaton();
         Map<Triple<State, State, State>, State> stateMap = new HashMap<>();
-        Queue<Triple<State, State, State>> worklist = new LinkedList<>();
+        Queue<Triple<State, State, State>> workList = new LinkedList<>();
 
-        Triple<State, State, State> initialTriple = new Triple<>(q0A, q0B, q0MK);
+        Triple<State, State, State> initialTriple = new Triple<>(q0A, q0MK, q0B);
         State initialState = new State();
         result.setInitialState(initialState);
 
         stateMap.put(initialTriple, initialState);
-        worklist.add(initialTriple);
+        workList.add(initialTriple);
 
-        // Step 5: Build product structure
-        while (!worklist.isEmpty()) {
-            Triple<State, State, State> currentTriple = worklist.poll();
-            State stateA = currentTriple.first;
-            State stateB = currentTriple.second;
-            State stateMK = currentTriple.third;
-            State combined = stateMap.get(currentTriple);
+        // Step 5: Construct product automaton based on triple transitions
+        while (!workList.isEmpty()) {
+            Triple<State, State, State> current = workList.poll();
+            State stateA = current.first;
+            State stateMK = current.second;
+            State stateB = current.third;
+            State combined = stateMap.get(current);
 
-            for (char letter : getRelevantLetters(stateA, stateB, stateMK)) {
-                State nextA = stepIfPossible(stateA, letter);
-                State nextB = stepIfPossible(stateB, letter);
-                State nextMK = stepIfPossible(stateMK, letter);
-
-                Triple<State, State, State> nextTriple = new Triple<>(nextA, nextB, nextMK);
-                State nextCombined = stateMap.computeIfAbsent(nextTriple, k -> new State());
-                combined.addTransition(new Transition(letter, nextCombined));
-                worklist.add(nextTriple);
+            // Stop expanding when Mk reaches accepting state — this is a semantic leaf
+            if (stateMK.isAccept()) {
+                combined.setAccept(true);
+                continue;
             }
 
-            // Mark as accepting if all components are accepting
-            if (stateA.isAccept() && stateB.isAccept() & stateMK.isAccept()) {
-                combined.setAccept(true);
+            for (char letter : getRelevantLetters(stateA, stateB)) {
+                // Only allow + or - if all three automata can transition on it
+                if ((letter == '+' || letter == '-') &&
+                        (stateA.step(letter) == null || stateB.step(letter) == null || stateMK.step(letter) == null)) {
+                    continue;
+                }
+
+                State nextA = stepIfPossible(stateA, letter);
+                State nextMK = stepIfPossible(stateMK, letter);
+                State nextB = stepIfPossible(stateB, letter);
+
+                Triple<State, State, State> nextTriple = new Triple<>(nextA, nextMK, nextB);
+                State nextCombined = stateMap.get(nextTriple);
+                if (nextCombined == null) {
+                    nextCombined = new State();
+                    stateMap.put(nextTriple, nextCombined);
+                    workList.add(nextTriple);
+                }
+
+                combined.addTransition(new Transition(letter, nextCombined));
             }
         }
 
+        // Step 6: Final cleanup and DFA transformation
         result.removeDeadTransitions();
         result.setDeterministic(false);
         result.determinize();
@@ -262,42 +275,42 @@ public class MkAbstraction {
 
     // Helper methods
 
-    private static Set<Character> getRelevantLetters(State a, State b, State mk) {
+    private static Set<Character> getRelevantLetters(State a, State b) {
         Set<Character> letters = new HashSet<>();
         if (a != null) {
             for (Transition t : a.getTransitions()) {
-                for (char c = t.getMin(); c <= t.getMax(); c++) {
-                    letters.add(c);
-                }
+                for (char c = t.getMin(); c <= t.getMax(); c++) letters.add(c);
             }
         }
         if (b != null) {
             for (Transition t : b.getTransitions()) {
-                for (char c = t.getMin(); c <= t.getMax(); c++) {
-                    letters.add(c);
-                }
-            }
-        }
-        if (mk != null) {
-            for (Transition t : mk.getTransitions()) {
-                for (char c = t.getMin(); c <= t.getMax(); c++) {
-                    letters.add(c);
-                }
+                for (char c = t.getMin(); c <= t.getMax(); c++) letters.add(c);
             }
         }
         return letters;
     }
 
-    private static State stepIfPossible(State state, char letter) {
-        State result = new State();
-        if (state == null) return result;
-        for (Transition t : state.getTransitions()) {
-            if (t.getMin() <= letter && letter <= t.getMax()) {
-                return state.step(letter);
+    public static Set<Character> getAlphabet(Automaton automaton) {
+        Set<Character> alphabet = new HashSet<>();
+        for (State state : automaton.getStates()) {
+            for (Transition t : state.getTransitions()) {
+                for (char c = t.getMin(); c <= t.getMax(); c++) {
+                    if (c != '+' && c != '-') {
+                        alphabet.add(c);
+                    }
+                }
             }
         }
-        // return same State, if no step was possible
-        return state;
+        return alphabet;
+    }
+
+    private static State stepIfPossible(State state, char letter) {
+        State next = state.step(letter);
+        return next != null ? next : state;
+    }
+
+    private static boolean canStep(State state, char letter) {
+        return state.step(letter) != null;
     }
 
     // Redirects transitions from q0A to states reachable from q0B, excluding transitions to qbPlus.
@@ -335,7 +348,7 @@ public class MkAbstraction {
         return qMinusStates;
     }
 
-    private static Automaton createMKAutomaton() {
+    private static Automaton createMKAutomaton(Set<Character> alphabet) {
         Automaton mk = new Automaton();
         State q0mk = new State();
         State q1 = new State();
@@ -343,12 +356,15 @@ public class MkAbstraction {
         State q3 = new State();
         mk.setInitialState(q0mk);
         q3.setAccept(true);
+
         q0mk.addTransition(new Transition('+', q1));
-        q0mk.addTransition(new Transition('a','z',q2));
+        for (char c : alphabet) {
+            q0mk.addTransition(new Transition(c, q2));
+            q1.addTransition(new Transition(c, q3));
+            q2.addTransition(new Transition(c, q3));
+        }
         q1.addTransition(new Transition('-', q3));
-        q1.addTransition(new Transition('a','z', q3));
         q2.addTransition(new Transition('-', q3));
-        q2.addTransition(new Transition('a','z', q3));
 
         return mk;
     }
