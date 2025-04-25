@@ -309,10 +309,6 @@ public class MkAbstraction {
         return next != null ? next : state;
     }
 
-    private static boolean canStep(State state, char letter) {
-        return state.step(letter) != null;
-    }
-
     // Redirects transitions from q0A to states reachable from q0B, excluding transitions to qbPlus.
     public static void redirectInitialTransitions(State q0A, State q0B, State qbPlus) {
         for (Transition t : q0B.getTransitions()) {
