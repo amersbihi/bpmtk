@@ -1,80 +1,70 @@
 package au.edu.unimelb.processmining.optimization;
 
 import dk.brics.automaton.*;
-import org.processmining.processtree.*;
-
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
 import java.util.*;
-
-import static dk.brics.automaton.SpecialOperations.*;
-
 
 public class MkAbstraction {
 
-    // test different operators (mkLoop, mkSequence, mkExclusive, mkParallel)
+    private static Map<String, Character> labelToChar = new HashMap<>();
+    private static Map<Character, String> charToLabel = new HashMap<>();
+    private static char nextChar = 'a';
+
     public static void main(String[] args) {
-        // Automaton test = mkLeafNode('b');
-        // Automaton test = mkLeafNode('c');
-        // Automaton test = mkSequence(mkLeafNode('b'), mkLeafNode('c'));
-        // Automaton test = mkExclusive(mkLeafNode('a'), mkLeafNode('τ'));
-        // Automaton test = mkLoop(mkSequence(mkLeafNode('b'), mkLeafNode('c')), mkExclusive(mkLeafNode('a'), mkLeafNode('τ')))
-        Automaton test = mkParallel(mkLoop(mkSequence(mkLeafNode('b'), mkLeafNode('c')), mkExclusive(mkLeafNode('a'), mkLeafNode('τ'))), mkLeafNode('d'));
-
-        // Output accepted language up to length 5
-        System.out.println("Accepted language:");
-        printLanguage(test, 5);
+        //
     }
 
-    public static void printLanguage(Automaton automaton, int maxLength) {
-        for (int length = 1; length <= maxLength; length++) {
-            Set<String> accepted = getStrings(automaton, length);
-            if (!accepted.isEmpty()) {
-                System.out.println("Strings of length " + length + ":");
-                for (String s : accepted) {
-                    System.out.println("  " + s);
-                }
-            }
+    private static Automaton computeMk(EfficientTree tree, int node) {
+        // Step 1: Base case — leaf node
+        if (tree.isActivity(node)) {
+            return mkLeafNode(tree.getActivityName(node));
         }
-    }
+        if (tree.isTau(node)) {
+            return mkLeafNode("τ"); // Tau = silent skip
+        }
 
-    public static Automaton computeMk(ProcessTree pt) {
-        if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.MANTASK)) {
-            char label = pt.getName().charAt(0);
-            if (label == 'τ') {
-                return mkLeafNode('τ');
-            } else {
-                return mkLeafNode(label);
-            }
-        } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.XOR)) {
-            // mkExclusive(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
-        } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.SEQ)) {
-            // return mkSequence(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
-        } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.LOOPDEF)) {     // not sure whether this represents Loop
-            // return mkLoop(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
-        } else if (pt.getType(pt.getRoot()).equals(ProcessTree.Type.AND)) {
-            // return mkParallel(computeMk(pt.getRoot().), computeMk(pt.getRoot().));
+        if (tree.isSequence(node)) {
+            int left = tree.getChild(node, 0);
+            int right = tree.getChild(node, 1);
+            return mkSequence(computeMk(tree, left), computeMk(tree, right));
+        } else if (tree.isXor(node)) {
+            int left = tree.getChild(node, 0);
+            int right = tree.getChild(node, 1);
+            return mkExclusive(computeMk(tree, left), computeMk(tree, right));
+        } else if (tree.isOr(node)) {
+            int left = tree.getChild(node, 0);
+            int right = tree.getChild(node, 1);
+            return mkParallel(computeMk(tree, left), computeMk(tree, right));
+        } else if (tree.isLoop(node)) {
+            int left = tree.getChild(node, 0);
+            int right = tree.getChild(node, 1);
+            return mkLoop(computeMk(tree, left), computeMk(tree, right));
         }
         return null;
     }
 
-    public static Automaton mkLeafNode(char label) {
+    public static Automaton mkLeafNode(String label) {
         Automaton a = new Automaton();
+
+        // Get the char that represents this label
+        char labelChar = getCharForLabel(label);
 
         State q0 = new State();
         State q1 = new State();
-        State q2 = new State();
         State qf = new State();
         qf.setAccept(true);
 
         // Add transitions
-        if (label == ('τ')) {
+        if (Objects.equals(label, "τ")) {
             // Special case: tau (skip)
             q0.addTransition(new Transition('+', q1));
             q1.addTransition(new Transition('-', qf));
         } else {
             // Normal labeled action
+            State q2 = new State();
             q0.addTransition(new Transition('+', q1));
-            q1.addTransition(new Transition(label, qf));
-            q0.addTransition(new Transition(label, q2));
+            q1.addTransition(new Transition(labelChar, qf));
+            q0.addTransition(new Transition(labelChar, q2));
             q2.addTransition(new Transition('-', qf));
         }
 
@@ -274,6 +264,14 @@ public class MkAbstraction {
     }
 
     // Helper methods
+
+    private static char getCharForLabel(String label) {
+        return labelToChar.computeIfAbsent(label, l -> {
+            char c = nextChar++;
+            charToLabel.put(c, l);
+            return c;
+        });
+    }
 
     private static Set<Character> getRelevantLetters(State a, State b) {
         Set<Character> letters = new HashSet<>();
