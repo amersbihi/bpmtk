@@ -1,46 +1,92 @@
 package au.edu.unimelb.processmining.optimization;
 
 import dk.brics.automaton.*;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTreeImpl;
 import java.util.*;
 
 public class MkAbstraction {
 
     private static Map<String, Character> labelToChar = new HashMap<>();
     private static Map<Character, String> charToLabel = new HashMap<>();
-    private static char nextChar = 'a';
+    private static char nextChar = '0';
 
     public static void main(String[] args) {
-        //
+        // Build the Efficient tree from BPM presentation
+        int[] treeArray = new int[]{
+                -25, // AND
+                -27, // LOOP
+                -23, // SEQUENCE
+                1,   // B
+                2,   // C
+                -22, // XOR
+                0,   // A
+                -1, // tau
+                3    // D
+        };
+
+        TObjectIntMap<String> activity2int = new TObjectIntHashMap<>();
+        activity2int.put("A", 0);
+        activity2int.put("B", 1);
+        activity2int.put("C", 2);
+        activity2int.put("D", 3);
+
+        String[] int2activity = new String[]{"A", "B", "C", "D"};
+
+        EfficientTree tree = new EfficientTreeImpl(treeArray, activity2int, int2activity);
+
+        Automaton test = computeMk(tree, tree.getRoot());
+
+        computeMkAbstraction(test,2);
+    }
+
+    public static Set<String> computeMkAbstraction(Automaton automaton, int k) {
+        Set<String> result = new HashSet<>();
+
+        // Get the finite accepted language
+        Set<String> language = automaton.getFiniteStrings();
+
+        for (String word : language) {
+            int n = word.length();
+            if (n <= k) {
+                result.add(word);
+                System.out.println(word);
+            } else {
+                for (int i = 0; i <= n - k; i++) {
+                    String substring = word.substring(i, i + k);
+                    System.out.println(substring);
+                    result.add(substring);
+                }
+            }
+        }
+
+        return result;
     }
 
     private static Automaton computeMk(EfficientTree tree, int node) {
-        // Step 1: Base case — leaf node
         if (tree.isActivity(node)) {
             return mkLeafNode(tree.getActivityName(node));
         }
         if (tree.isTau(node)) {
-            return mkLeafNode("τ"); // Tau = silent skip
+            return mkLeafNode("τ");
         }
 
+        Automaton left = computeMk(tree, tree.getChild(node, 0));
+        Automaton right = computeMk(tree, tree.getChild(node, 1));
+
         if (tree.isSequence(node)) {
-            int left = tree.getChild(node, 0);
-            int right = tree.getChild(node, 1);
-            return mkSequence(computeMk(tree, left), computeMk(tree, right));
+            return mkSequence(left, right);
         } else if (tree.isXor(node)) {
-            int left = tree.getChild(node, 0);
-            int right = tree.getChild(node, 1);
-            return mkExclusive(computeMk(tree, left), computeMk(tree, right));
-        } else if (tree.isOr(node)) {
-            int left = tree.getChild(node, 0);
-            int right = tree.getChild(node, 1);
-            return mkParallel(computeMk(tree, left), computeMk(tree, right));
+            return mkExclusive(left, right);
+        } else if (tree.isConcurrent(node)) {
+            return mkParallel(left, right);
         } else if (tree.isLoop(node)) {
-            int left = tree.getChild(node, 0);
-            int right = tree.getChild(node, 1);
-            return mkLoop(computeMk(tree, left), computeMk(tree, right));
+            return mkLoop(left, right);
         }
-        return null;
+
+        throw new UnsupportedOperationException("Unknown node type at node " + node);
     }
 
     public static Automaton mkLeafNode(String label) {
@@ -288,7 +334,7 @@ public class MkAbstraction {
         return letters;
     }
 
-    public static Set<Character> getAlphabet(Automaton automaton) {
+    private static Set<Character> getAlphabet(Automaton automaton) {
         Set<Character> alphabet = new HashSet<>();
         for (State state : automaton.getStates()) {
             for (Transition t : state.getTransitions()) {
@@ -308,7 +354,7 @@ public class MkAbstraction {
     }
 
     // Redirects transitions from q0A to states reachable from q0B, excluding transitions to qbPlus.
-    public static void redirectInitialTransitions(State q0A, State q0B, State qbPlus) {
+    private static void redirectInitialTransitions(State q0A, State q0B, State qbPlus) {
         for (Transition t : q0B.getTransitions()) {
             if (!t.getDest().equals(qbPlus)) {
                 q0A.addTransition(new Transition(t.getMin(), t.getDest()));
@@ -317,7 +363,7 @@ public class MkAbstraction {
     }
 
     // Returns the set of states that have a '-' transition to the given accepting state
-    public static Set<State> findQMinusSet(Automaton automaton, State acceptingState) {
+    private static Set<State> findQMinusSet(Automaton automaton, State acceptingState) {
         Set<State> qMinusStates = new HashSet<>();
 
         // Build reverse map: destination state -> set of source states
@@ -363,7 +409,7 @@ public class MkAbstraction {
         return mk;
     }
 
-    public static class Triple<A, B, C> {
+    private static class Triple<A, B, C> {
         public final A first;
         public final B second;
         public final C third;
