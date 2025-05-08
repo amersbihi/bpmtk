@@ -1,7 +1,6 @@
 package au.edu.unimelb.processmining.optimization;
 
 import dk.brics.automaton.*;
-import org.processmining.plugins.InductiveMiner.Pair;
 import org.processmining.plugins.InductiveMiner.efficienttree.*;
 import org.processmining.processtree.ProcessTree;
 import org.processmining.processtree.impl.ProcessTreeImpl;
@@ -9,7 +8,7 @@ import org.processmining.processtree.ptml.Ptml;
 import org.processmining.processtree.ptml.importing.PtmlImportTree;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.nio.file.Files;
 import java.util.*;
 
 public class MkAbstraction {
@@ -20,7 +19,7 @@ public class MkAbstraction {
 
         // Use PtmlImportTree plugin to read and parse the PTML file into a Ptml object
         PtmlImportTree plugin = new PtmlImportTree();
-        Ptml ptml = plugin.importPtmlFromStream(null, new FileInputStream(file), file.getName(), file.length());
+        Ptml ptml = plugin.importPtmlFromStream(null, Files.newInputStream(file.toPath()), file.getName(), file.length());
 
         // Convert the Ptml object into a concrete ProcessTree representation
         ProcessTree processTree = new ProcessTreeImpl();
@@ -142,11 +141,9 @@ public class MkAbstraction {
         // Step 6: Clear transitions from q0B and clean up
         q0B.getTransitions().clear();
         a.removeDeadTransitions();
-        a.setDeterministic(false);
-        a.determinize();
-        a.minimize();
+        Automaton retAutomaton = computeMkAbstraction(a, k);
 
-        return a;
+        return retAutomaton;
     }
 
     public static Automaton mkLoop(Automaton a, Automaton b, int k) {
@@ -195,7 +192,7 @@ public class MkAbstraction {
         a.determinize();
         a.minimize();
 
-        return a;
+        return computeMkAbstraction(a, k);
     }
 
     public static Automaton mkParallel(Automaton a, Automaton b, int k) {
@@ -207,23 +204,44 @@ public class MkAbstraction {
         State qfA = a.getAcceptStates().iterator().next();
         State qfB = b.getAcceptStates().iterator().next();
 
-        // Step 1: Add '-' transitions from initial to final (partial execution support)
-        q0A.addTransition(new Transition('-', qfA));
-        q0B.addTransition(new Transition('-', qfB));
+        // Step 1: compute substring Automatons
+        a = computeAllSubstringsAutomaton(a);
+        b = computeAllSubstringsAutomaton(b);
 
-        // Step 2: Set all states to accepting to allow partial merging
-        for (State s : a.getStates()) s.setAccept(true);
-        for (State s : b.getStates()) s.setAccept(true);
-
-        // Step 3: Create Mk automaton from joint alphabet
+        // Step 2: Create Mk automaton from joint alphabet
         Set<Character> alphabet = new HashSet<>();
         alphabet.addAll(getAlphabet(a));
         alphabet.addAll(getAlphabet(b));
 
-        Automaton mk = createMKAutomaton(alphabet);
+        Automaton mk = createMKAutomaton(alphabet, k);
         State q0MK = mk.getInitialState();
 
-        // Step 4: Initialize result automaton and state tracking
+        class Triple<A, B, C> {
+            public final A first;
+            public final B second;
+            public final C third;
+
+            public Triple(A first, B second, C third) {
+                this.first = first;
+                this.second = second;
+                this.third = third;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (this == o) return true;
+                if (o == null || getClass() != o.getClass()) return false;
+                Triple<?, ?, ?> triple = (Triple<?, ?, ?>) o;
+                return Objects.equals(first, triple.first) && Objects.equals(second, triple.second) && Objects.equals(third, triple.third);
+            }
+
+            @Override
+            public int hashCode() {
+                return Objects.hash(first, second, third);
+            }
+        }
+
+        // Step 3: Initialize result automaton and state tracking
         Automaton result = new Automaton();
         Map<Triple<State, State, State>, State> stateMap = new HashMap<>();
         Queue<Triple<State, State, State>> workList = new LinkedList<>();
@@ -235,7 +253,7 @@ public class MkAbstraction {
         stateMap.put(initialTriple, initialState);
         workList.add(initialTriple);
 
-        // Step 5: Construct product automaton based on triple transitions
+        // Step 4: Construct product automaton based on triple transitions
         while (!workList.isEmpty()) {
             Triple<State, State, State> current = workList.poll();
             State stateA = current.first;
@@ -271,7 +289,7 @@ public class MkAbstraction {
             }
         }
 
-        // Step 6: Final cleanup and DFA transformation
+        // Step 5: Final cleanup and DFA transformation
         result.removeDeadTransitions();
         result.setDeterministic(false);
         result.determinize();
@@ -280,7 +298,119 @@ public class MkAbstraction {
         return result;
     }
 
-    // Helper methods
+    public static Automaton computeMkAbstraction(Automaton automaton, int k) {
+        automaton.determinize();
+        automaton.minimize();
+
+        class PES {
+            State origState;
+            String memory;
+
+            PES(State origState, String memory) {
+                this.origState = origState;
+                this.memory = memory;
+            }
+
+            @Override
+            public boolean equals(Object o) {
+                if (!(o instanceof PES)) return false;
+                PES other = (PES) o;
+                return origState.equals(other.origState) && memory.equals(other.memory);
+            }
+
+            @Override
+            public int hashCode() {
+                return origState.hashCode() * 31 + memory.hashCode();
+            }
+        }
+
+        Automaton mkAutomaton = new Automaton();
+        Map<PES, State> pesToState = new HashMap<>();
+        Queue<PES> queue = new LinkedList<>();
+
+        PES initialPES = new PES(automaton.getInitialState(), "");
+        State s0 = new State();
+        mkAutomaton.setInitialState(s0);
+
+        pesToState.put(initialPES, s0);
+        queue.add(initialPES);
+
+        while (!queue.isEmpty()) {
+            PES current = queue.poll();
+            State currentOrig = current.origState;
+            String currentMemory = current.memory;
+            State combined = pesToState.get(current);
+
+            // Mark accepting if original is accepting or memory reached length k
+            if (currentOrig.getTransitions().isEmpty() || currentMemory.length() == k) {
+                combined.setAccept(true);
+            } else {
+                for (Transition t : currentOrig.getTransitions()) {
+                    for (char c = t.getMin(); c <= t.getMax(); c++) {
+                        State nextOrig = t.getDest();
+
+                        // Advance window
+                        String nextMemory = updateMemory(currentMemory, c, k);
+                        PES nextPES = new PES(nextOrig, nextMemory);
+                        State nextCombined = pesToState.get(nextPES);
+                        if (nextCombined == null) {
+                            nextCombined = new State();
+                            pesToState.put(nextPES, nextCombined);
+                            queue.add(nextPES);
+                        }
+                        combined.addTransition(new Transition(c, nextCombined));
+
+                        // Restart window from next state
+                        PES restartPES = new PES(nextOrig, "");
+                        State restartCombined = pesToState.get(restartPES);
+                        if (restartCombined == null) {
+                            restartCombined = new State();
+                            pesToState.put(restartPES, restartCombined);
+                            queue.add(restartPES);
+                        }
+                        s0.addTransition(new Transition(c, restartCombined));
+                    }
+                }
+            }
+        }
+
+        mkAutomaton.setDeterministic(false);
+        mkAutomaton.determinize();
+        mkAutomaton.minimize();
+        return mkAutomaton;
+    }
+
+// Helper methods
+
+    private static String updateMemory(String memory, char c, int k) {
+        String combined = memory + c;
+        if (combined.length() <= k) {
+            return combined;
+        } else {
+            return combined.substring(1,k+1);
+        }
+    }
+
+    private static Automaton computeAllSubstringsAutomaton(Automaton automaton) {
+        automaton.expandSingleton();
+
+        State subState = new State();
+        List<StatePair> epsilonPairs = new ArrayList<>();
+
+        for (State s : automaton.getStates()) {
+            epsilonPairs.add(new StatePair(subState, s));
+            s.setAccept(true);  // make all states accepting
+        }
+
+        automaton.addEpsilons(epsilonPairs);
+        automaton.setInitialState(subState);
+        automaton.setDeterministic(false);
+
+        automaton.determinize();
+
+        return automaton;
+    }
+
     private static Set<Character> getRelevantLetters(State a, State b) {
         Set<Character> letters = new HashSet<>();
         if (a != null) {
@@ -296,18 +426,16 @@ public class MkAbstraction {
         return letters;
     }
 
-    private static Set<Character> getAlphabet(Automaton automaton) {
-        Set<Character> alphabet = new HashSet<>();
-        for (State state : automaton.getStates()) {
-            for (Transition t : state.getTransitions()) {
+    private static Set<Character> getRelevantLetters(State a) {
+        Set<Character> letters = new HashSet<>();
+        if (a != null) {
+            for (Transition t : a.getTransitions()) {
                 for (char c = t.getMin(); c <= t.getMax(); c++) {
-                    if (c != '+' && c != '-') {
-                        alphabet.add(c);
-                    }
+                    letters.add(c);
                 }
             }
         }
-        return alphabet;
+        return letters;
     }
 
     private static State stepIfPossible(State state, char letter) {
@@ -350,49 +478,82 @@ public class MkAbstraction {
         return qMinusStates;
     }
 
-    private static Automaton createMKAutomaton(Set<Character> alphabet) {
-        Automaton mk = new Automaton();
-        State q0mk = new State();
-        State q1 = new State();
-        State q2 = new State();
-        State q3 = new State();
-        mk.setInitialState(q0mk);
-        q3.setAccept(true);
-
-        q0mk.addTransition(new Transition('+', q1));
-        for (char c : alphabet) {
-            q0mk.addTransition(new Transition(c, q2));
-            q1.addTransition(new Transition(c, q3));
-            q2.addTransition(new Transition(c, q3));
+    private static Set<Character> getAlphabet(Automaton automaton) {
+        Set<Character> alphabet = new HashSet<>();
+        for (State state : automaton.getStates()) {
+            for (Transition t : state.getTransitions()) {
+                for (char c = t.getMin(); c <= t.getMax(); c++) {
+                    if (c != '+' && c != '-') {
+                        alphabet.add(c);
+                    }
+                }
+            }
         }
-        q1.addTransition(new Transition('-', q3));
-        q2.addTransition(new Transition('-', q3));
-
-        return mk;
+        return alphabet;
     }
 
-    private static class Triple<A, B, C> {
-        public final A first;
-        public final B second;
-        public final C third;
+    private static Automaton createMKAutomaton(Set<Character> alphabet, int k) {
+        Automaton mk = new Automaton();
+        State q0mk = new State();
+        State qf = new State();
+        mk.setInitialState(q0mk);
+        qf.setAccept(true);
 
-        public Triple(A first, B second, C third) {
-            this.first = first;
-            this.second = second;
-            this.third = third;
+        if (k == 2) {
+            State q1 = new State();
+            State q2 = new State();
+            q0mk.addTransition(new Transition('+', q1));
+            for (char c : alphabet) {
+                q0mk.addTransition(new Transition(c, q2));
+                q1.addTransition(new Transition(c, qf));
+                q2.addTransition(new Transition(c, qf));
+            }
+            q1.addTransition(new Transition('-', qf));
+            q2.addTransition(new Transition('-', qf));
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Triple<?, ?, ?> triple = (Triple<?, ?, ?>) o;
-            return Objects.equals(first, triple.first) && Objects.equals(second, triple.second) && Objects.equals(third, triple.third);
+        if (k == 3) {
+            State q1 = new State();
+            State q2 = new State();
+            State q3 = new State();
+            State q4 = new State();
+            q0mk.addTransition(new Transition('+', q1));
+            q4.addTransition(new Transition('-', qf));
+            q3.addTransition(new Transition('-', qf));
+            for (char c : alphabet) {
+                q0mk.addTransition(new Transition(c, q2));
+                q1.addTransition(new Transition(c, q3));
+                q2.addTransition(new Transition(c, q4));
+                q3.addTransition(new Transition(c, qf));
+                q4.addTransition(new Transition(c, qf));
+            }
         }
 
-        @Override
-        public int hashCode() {
-            return Objects.hash(first, second, third);
+        if (k == 4) {
+            State q1 = new State();
+            State q2 = new State();
+            State q3 = new State();
+            State q4 = new State();
+            State q5 = new State();
+            State q6 = new State();
+
+            q0mk.addTransition(new Transition('+', q1));
+            q5.addTransition(new Transition('-', qf));
+            q6.addTransition(new Transition('-', qf));
+            for (char c : alphabet) {
+                // From initial
+                q0mk.addTransition(new Transition(c, q2));
+                // + path
+                q1.addTransition(new Transition(c, q3));
+                q3.addTransition(new Transition(c, q5));
+                q5.addTransition(new Transition(c, qf));
+                // - path
+                q2.addTransition(new Transition(c, q4));
+                q4.addTransition(new Transition(c, q6));
+                q6.addTransition(new Transition(c, qf));
+            }
         }
+
+        return mk;
     }
 }
