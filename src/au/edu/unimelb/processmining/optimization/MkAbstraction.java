@@ -141,9 +141,8 @@ public class MkAbstraction {
         // Step 6: Clear transitions from q0B and clean up
         q0B.getTransitions().clear();
         a.removeDeadTransitions();
-        Automaton retAutomaton = computeMkAbstraction(a, k);
 
-        return retAutomaton;
+        return computeMkAbstraction(a, k);
     }
 
     public static Automaton mkLoop(Automaton a, Automaton b, int k) {
@@ -307,6 +306,11 @@ public class MkAbstraction {
                 PES other = (PES) o;
                 return origState.equals(other.origState) && memory.equals(other.memory);
             }
+
+            @Override
+            public int hashCode() {
+                return origState.hashCode() * 31 + memory.hashCode();
+            }
         }
 
         Automaton mkAutomaton = new Automaton();
@@ -315,6 +319,7 @@ public class MkAbstraction {
 
         Map<PES, State> pesToState = new HashMap<>();
         Queue<PES> queue = new LinkedList<>();
+        Set<PES> visited = new HashSet<>();
 
         PES initialPES = new PES(automaton.getInitialState(), "");
         State initialState = new State();
@@ -348,7 +353,10 @@ public class MkAbstraction {
                     if (nextCombined == null) {
                         nextCombined = new State();
                         pesToState.put(nextPES, nextCombined);
-                        queue.add(nextPES);
+                        if (!visited.contains(nextPES)) {
+                            queue.add(nextPES);
+                            visited.add(nextPES); // Mark as visited
+                        }
                     }
                     combined.addTransition(new Transition(c, nextCombined));
 
@@ -356,7 +364,10 @@ public class MkAbstraction {
                     PES restartPES = new PES(nextOrig, String.valueOf(c));
                     State restartState = new State();
                     pesToState.put(restartPES, restartState);
-                    queue.add(restartPES);
+                    if (!visited.contains(restartPES)) {
+                        queue.add(restartPES);
+                        visited.add(restartPES); // Mark as visited
+                    }
                     s0.addTransition(new Transition(c, restartState));
                 }
             }
@@ -414,19 +425,6 @@ public class MkAbstraction {
         }
         return letters;
     }
-
-    private static Set<Character> getRelevantLetters(State a) {
-        Set<Character> letters = new HashSet<>();
-        if (a != null) {
-            for (Transition t : a.getTransitions()) {
-                for (char c = t.getMin(); c <= t.getMax(); c++) {
-                    letters.add(c);
-                }
-            }
-        }
-        return letters;
-    }
-
     private static State stepIfPossible(State state, char letter) {
         State next = state.step(letter);
         return next != null ? next : state;
