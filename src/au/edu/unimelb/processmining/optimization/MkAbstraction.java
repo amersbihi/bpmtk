@@ -30,7 +30,7 @@ public class MkAbstraction {
         // Convert the ProcessTree into an EfficientTree
         EfficientTree efficientTree = ProcessTree2EfficientTree.convert(processTree);
 
-        Automaton automaton = computeMk(efficientTree, efficientTree.getRoot(), 3);
+        Automaton automaton = computeMk(efficientTree, efficientTree.getRoot(), 4);
 
         System.out.println(automaton.getFiniteStrings());
     }
@@ -294,22 +294,26 @@ public class MkAbstraction {
         class PES {
             State origState;
             String memory;
+            boolean fromInitial;
 
-            PES(State origState, String memory) {
+            PES(State origState, String memory, boolean fromInitial) {
                 this.origState = origState;
                 this.memory = memory;
+                this.fromInitial = fromInitial;
             }
 
             @Override
             public boolean equals(Object o) {
                 if (!(o instanceof PES)) return false;
                 PES other = (PES) o;
-                return origState.equals(other.origState) && memory.equals(other.memory);
+                return origState.equals(other.origState) &&
+                        memory.equals(other.memory) &&
+                        fromInitial == other.fromInitial;
             }
 
             @Override
             public int hashCode() {
-                return origState.hashCode() * 31 + memory.hashCode();
+                return origState.hashCode() * 31 + memory.hashCode() + (fromInitial ? 1 : 0);
             }
         }
 
@@ -321,23 +325,21 @@ public class MkAbstraction {
         Queue<PES> queue = new LinkedList<>();
         Set<PES> visited = new HashSet<>();
 
-        PES initialPES = new PES(automaton.getInitialState(), "");
-        State initialState = new State();
-
-        List<StatePair> epsilonPairs = new ArrayList<>();
-        epsilonPairs.add(new StatePair(s0, initialState));
-
-        pesToState.put(initialPES, initialState);
+        PES initialPES = new PES(automaton.getInitialState(), "", true);
+        pesToState.put(initialPES, s0);
         queue.add(initialPES);
+        visited.add(initialPES);
 
         while (!queue.isEmpty()) {
             PES current = queue.poll();
             State currentOrig = current.origState;
             String currentMemory = current.memory;
+            boolean fromInitial = current.fromInitial;
             State combined = pesToState.get(current);
 
-            // Accept if memory reached length k
-            if (currentMemory.length() == k) {
+            // Accept if memory has length k, OR if on init path and at original final state
+            if (currentMemory.length() == k ||
+                    (fromInitial && currentMemory.length() > 0 && currentOrig.isAccept())) {
                 combined.setAccept(true);
                 continue;
             }
@@ -347,26 +349,29 @@ public class MkAbstraction {
                     State nextOrig = t.getDest();
                     String nextMemory = updateMemory(currentMemory, c, k);
 
-                    // Proceed normally
-                    PES nextPES = new PES(nextOrig, nextMemory);
+                    // Continue original path
+                    PES nextPES = new PES(nextOrig, nextMemory, fromInitial);
                     State nextCombined = pesToState.get(nextPES);
                     if (nextCombined == null) {
                         nextCombined = new State();
                         pesToState.put(nextPES, nextCombined);
                         if (!visited.contains(nextPES)) {
                             queue.add(nextPES);
-                            visited.add(nextPES); // Mark as visited
+                            visited.add(nextPES);
                         }
                     }
                     combined.addTransition(new Transition(c, nextCombined));
 
-                    // Restart window from nextOrig via s0 with memory = "" and label = c
-                    PES restartPES = new PES(nextOrig, String.valueOf(c));
-                    State restartState = new State();
-                    pesToState.put(restartPES, restartState);
-                    if (!visited.contains(restartPES)) {
-                        queue.add(restartPES);
-                        visited.add(restartPES); // Mark as visited
+                    // Restart from s0, not on initial path anymore
+                    PES restartPES = new PES(nextOrig, String.valueOf(c), false);
+                    State restartState = pesToState.get(restartPES);
+                    if (restartState == null) {
+                        restartState = new State();
+                        pesToState.put(restartPES, restartState);
+                        if (!visited.contains(restartPES)) {
+                            queue.add(restartPES);
+                            visited.add(restartPES);
+                        }
                     }
                     s0.addTransition(new Transition(c, restartState));
                 }
@@ -378,7 +383,6 @@ public class MkAbstraction {
         mkAutomaton.minimize();
         return mkAutomaton;
     }
-
 
 // Helper methods
 
@@ -425,6 +429,7 @@ public class MkAbstraction {
         }
         return letters;
     }
+
     private static State stepIfPossible(State state, char letter) {
         State next = state.step(letter);
         return next != null ? next : state;
