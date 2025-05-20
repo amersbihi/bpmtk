@@ -21,7 +21,7 @@ import static java.lang.Thread.sleep;
 
 public class MinerProxy {
 
-    public enum MinerTAG {SM, IM, FO, SHM}
+    public enum MinerTAG {SM, IM, FO, SHM, IMTree}
     private MinerTAG tag;
     private SimpleLog slog;
     private int timeout;
@@ -37,6 +37,8 @@ public class MinerProxy {
 
     /****************** Inductive Miner *******************/
     private IMdProxy inductive;
+
+    private IMdProxy tree;
     /***************************************************/
 
     /***************** Shared SM, IM and FO ****************/
@@ -135,7 +137,27 @@ public class MinerProxy {
                 for(int j=0; j < 6; j++)
                     perturbParams.add(new Params(dparam0, j*0.2));
                 break;
+            case IMTree:
+                tree = new IMdProxy();
+                timeout = 2000;
+                params = new ArrayList<>();
+                for(int i=2; i < 6; i++)
+                    for(int j=1; j < 4; j++)
+                        params.add(new Params(i*0.2, j*0.2));
+                restartParams = new ArrayList<>(params.size()+1);
 
+                defaultParams = new Params(1.0, 0.0);
+                restartParams.add(defaultParams);
+                do {
+                    param = params.remove(random.nextInt(params.size()));
+                    restartParams.add(param);
+                } while( !params.isEmpty() );
+
+                perturbParams = new ArrayList<>(5);
+                dparam0 = defaultParams.getParam(0);
+                for(int j=0; j < 6; j++)
+                    perturbParams.add(new Params(dparam0, j*0.2));
+                break;
             default:
                 break;
         }
@@ -247,6 +269,8 @@ public class MinerProxy {
                 return fodina.discoverFromSDFG(sdfg, slog, fodinaSettings);
             case IM:
                 return inductive.discoverFromSDFG(sdfg);
+            case IMTree:
+                return tree.discoverFromSDFG(sdfg);
             default:
                 return null;
         }
