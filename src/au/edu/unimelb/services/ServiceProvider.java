@@ -23,7 +23,6 @@ import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.factory.XFactoryNaiveImpl;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
-import org.deckfour.xes.model.impl.XAttributeMapImpl;
 import org.deckfour.xes.model.impl.XLogImpl;
 import org.deckfour.xes.out.XesXmlGZIPSerializer;
 import org.processmining.contexts.uitopia.UIContext;
@@ -38,10 +37,8 @@ import org.processmining.plugins.bpmnminer.types.MinerSettings;
 import org.processmining.plugins.kutoolbox.utils.FakePluginContext;
 import org.processmining.plugins.pnml.exporting.PnmlExportNetToPNML;
 import org.processmining.plugins.pnml.importing.PnmlImportNet;
-import sun.java2d.pipe.SpanShapeRenderer;
 
 import java.io.*;
-import java.util.ArrayList;
 
 
 /**
@@ -548,7 +545,11 @@ public class ServiceProvider {
     public void APDO(String logPath, String order, String metaopt, String miner) {
         AutomatedProcessDiscoveryOptimizer optimizer = new AutomatedProcessDiscoveryOptimizer(Integer.valueOf(order), AutomatedProcessDiscoveryOptimizer.MetaOpt.valueOf(metaopt), MinerProxy.MinerTAG.valueOf(miner));
         optimizer.init(logPath);
-        optimizer.searchOptimalBPMN();
+        if (MinerProxy.MinerTAG.IM.equals(MinerProxy.MinerTAG.valueOf(miner))){
+            optimizer.searchOptimalBPMN();
+        } else if (MinerProxy.MinerTAG.IMTree.equals(MinerProxy.MinerTAG.valueOf(miner))){
+            optimizer.searchOptimalTree();
+        }
     }
 
     public void omegaMiner(String logPath) {

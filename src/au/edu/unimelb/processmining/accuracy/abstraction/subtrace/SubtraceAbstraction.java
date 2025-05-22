@@ -10,9 +10,13 @@ import com.raffaeleconforti.conversion.bpmn.BPMNToPetriNetConverter;
 import com.raffaeleconforti.conversion.petrinet.PetriNetToBPMNConverter;
 import de.drscc.automaton.Automaton;
 import de.drscc.importer.ImportProcessModel;
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
+import org.processmining.framework.packages.PackageManager;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
+import org.processmining.plugins.InductiveMiner.efficienttree.*;
+import org.processmining.plugins.InductiveMiner.reduceacceptingpetrinet.ReduceAcceptingPetriNetKeepLanguage;
 
 import java.util.*;
 
@@ -35,16 +39,16 @@ public class SubtraceAbstraction extends Abstraction {
     }
 
     public void addSubtrace(Subtrace subtrace) {
-        if( !subtrace.isPrintable() ) return;
+        if (!subtrace.isPrintable()) return;
         subtrace.frequency = 1.0;
         subtraces.put(subtrace.print(), subtrace);
     }
 
     public void addSubtrace(Subtrace subtrace, int frequency) {
-        if( !subtrace.isPrintable() ) return;
-        globalGramsCount+= (double)frequency;
+        if (!subtrace.isPrintable()) return;
+        globalGramsCount += (double) frequency;
 
-        if( subtraces.containsKey(subtrace.print()) ) subtraces.get(subtrace.print()).frequency += frequency;
+        if (subtraces.containsKey(subtrace.print())) subtraces.get(subtrace.print()).frequency += frequency;
         else {
             subtrace.frequency = frequency;
             subtraces.put(subtrace.print(), subtrace);
@@ -55,51 +59,51 @@ public class SubtraceAbstraction extends Abstraction {
         double frequencyPenalty;
         Set<String> ast;
 
-        if( !(a instanceof SubtraceAbstraction) ) return -1;
+        if (!(a instanceof SubtraceAbstraction)) return -1;
         SubtraceAbstraction m = (SubtraceAbstraction) a;
 
         ast = new HashSet<>(subtraces.keySet());
         ast.removeAll(m.subtraces.keySet());
 //        System.out.println("DEBUG - " + ast.size() + " " + subtraces.size() + " " + m.subtraces.size());
 
-        if( globalGramsCount == 0.0 )
-            return 1.0 - (double)ast.size()/subtraces.size();
+        if (globalGramsCount == 0.0)
+            return 1.0 - (double) ast.size() / subtraces.size();
 
         frequencyPenalty = 0.0;
-        for( String s : ast ) frequencyPenalty += subtraces.get(s).frequency;
-        return 1.0 - frequencyPenalty/globalGramsCount;
+        for (String s : ast) frequencyPenalty += subtraces.get(s).frequency;
+        return 1.0 - frequencyPenalty / globalGramsCount;
     }
 
     public double minusHUN(Abstraction a) {
-        if( !(a instanceof SubtraceAbstraction) ) return -1;
+        if (!(a instanceof SubtraceAbstraction)) return -1;
         SubtraceAbstraction m = (SubtraceAbstraction) a;
 
         GraphEditDistance gld = new GraphEditDistance();
         System.out.println("DEBUG - computing hungarian distance, global count: " + globalGramsCount);
 
-        if( globalGramsCount == 0.0 )
-            return 1.0 - gld.getSubtracesDistance(this.subtraces.values(), m.subtraces.values(), (double)order);
+        if (globalGramsCount == 0.0)
+            return 1.0 - gld.getSubtracesDistance(this.subtraces.values(), m.subtraces.values(), (double) order);
 
-        return 1.0 - gld.getFreqWeightedSubtracesDistance(this.subtraces.values(), m.subtraces.values(), (double)order, globalGramsCount);
+        return 1.0 - gld.getFreqWeightedSubtracesDistance(this.subtraces.values(), m.subtraces.values(), (double) order, globalGramsCount);
     }
 
     public double minusGRD(Abstraction a) {
         Set<Subtrace> leftovers;
 
-        if( !(a instanceof SubtraceAbstraction) ) return -1;
+        if (!(a instanceof SubtraceAbstraction)) return -1;
         SubtraceAbstraction m = (SubtraceAbstraction) a;
 
         leftovers = new HashSet<>(this.subtraces.values());
 
-        for( Subtrace st : m.subtraces.values() ) leftovers.remove(st);
-        if( leftovers.isEmpty() ) return 1;
+        for (Subtrace st : m.subtraces.values()) leftovers.remove(st);
+        if (leftovers.isEmpty()) return 1;
 
         GraphEditDistance gld = new GraphEditDistance();
-        return 1.0 - gld.getSubtracesDistance(leftovers, m.subtraces.values(), (double)order);
+        return 1.0 - gld.getSubtracesDistance(leftovers, m.subtraces.values(), (double) order);
     }
 
     public double minusUHU(Abstraction a) {
-        if( !(a instanceof SubtraceAbstraction) ) return -1;
+        if (!(a instanceof SubtraceAbstraction)) return -1;
         SubtraceAbstraction m = (SubtraceAbstraction) a;
 
         GraphEditDistance gld = new GraphEditDistance();
@@ -108,10 +112,10 @@ public class SubtraceAbstraction extends Abstraction {
     }
 
     public ConfusionMatrix confusionMatrix(Abstraction a) {
-        if( !(a instanceof SubtraceAbstraction) ) return null;
+        if (!(a instanceof SubtraceAbstraction)) return null;
         SubtraceAbstraction m = (SubtraceAbstraction) a;
 
-        if(matrix != null) return matrix;
+        if (matrix != null) return matrix;
 
         matrix = new ConfusionMatrix(this, m);
         matrix.compute();
@@ -147,7 +151,7 @@ public class SubtraceAbstraction extends Abstraction {
     }
 
     public String nextMismatch() {
-        if(differences == null || differences.isEmpty()) return null;
+        if (differences == null || differences.isEmpty()) return null;
         return differences.remove(random.nextInt(differences.size()));
     }
 
@@ -160,19 +164,19 @@ public class SubtraceAbstraction extends Abstraction {
         differences.removeAll(sa.subtraces.keySet());
 
         sortedSubtraces = new ArrayList<>();
-        for( String st : differences ) sortedSubtraces.add(subtraces.get(st));
+        for (String st : differences) sortedSubtraces.add(subtraces.get(st));
         Collections.sort(sortedSubtraces);
 
         differences.clear();
-        neighbours = neighbours<sortedSubtraces.size() ? neighbours : sortedSubtraces.size();
+        neighbours = neighbours < sortedSubtraces.size() ? neighbours : sortedSubtraces.size();
 
-        if( globalGramsCount == 0.0 ) {
-            for(int i = 1; i <= neighbours; i++) {
+        if (globalGramsCount == 0.0) {
+            for (int i = 1; i <= neighbours; i++) {
                 next = random.nextInt(sortedSubtraces.size());
                 differences.add(sortedSubtraces.get(next).print());
             }
         } else {
-            for(int i = 1; i <= neighbours; i++) {
+            for (int i = 1; i <= neighbours; i++) {
                 differences.add(sortedSubtraces.get(sortedSubtraces.size() - i).print());
 //                sortedSubtraces.get(sortedSubtraces.size() - i).frequency *= 0.70;
             }
@@ -181,12 +185,16 @@ public class SubtraceAbstraction extends Abstraction {
         return differences;
     }
 
-    public double density(){ return 1.0; }
+    public double density() {
+        return 1.0;
+    }
 
-    public Set<Subtrace> getSubtraces() { return new HashSet<>(subtraces.values()); }
+    public Set<Subtrace> getSubtraces() {
+        return new HashSet<>(subtraces.values());
+    }
 
     public void print() {
-        for( String st : subtraces.keySet() ) System.out.println(st + "-" + subtraces.get(st).isComplete());
+        for (String st : subtraces.keySet()) System.out.println(st + "-" + subtraces.get(st).isComplete());
         System.out.println("INFO - total subtraces: " + subtraces.size());
     }
 
@@ -194,7 +202,7 @@ public class SubtraceAbstraction extends Abstraction {
         ImportProcessModel importer = new ImportProcessModel();
 
         Object[] objects = BPMNToPetriNetConverter.convert(diagram);
-        if(objects[1] == null) objects[1] = PetriNetToBPMNConverter.guessInitialMarking((Petrinet) objects[0]);
+        if (objects[1] == null) objects[1] = PetriNetToBPMNConverter.guessInitialMarking((Petrinet) objects[0]);
 
 //        if(objects[1] == null) objects[1] = MarkingDiscoverer.constructInitialMarking(context, (Petrinet) objects[0]);
 //        else MarkingDiscoverer.createInitialMarkingConnection(context, (Petrinet) objects[0], (Marking) objects[1]);
@@ -225,5 +233,4 @@ public class SubtraceAbstraction extends Abstraction {
             return null;
         }
     }
-
 }

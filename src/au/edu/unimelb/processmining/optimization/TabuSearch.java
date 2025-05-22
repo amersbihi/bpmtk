@@ -4,6 +4,7 @@ import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.unimelb.processmining.accuracy.abstraction.LogAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
 
 import java.io.PrintWriter;
 import java.util.*;
@@ -248,6 +249,11 @@ public class TabuSearch implements Metaheuristics {
 //        System.out.println("STATS - total tabuizations: " + tabuizations);
 
         return bestBPMN;
+    }
+
+    @Override
+    public EfficientTree searchOptimalTree(SimpleLog slog, int order, int maxit, int neighbourhood, int timeout, String name) {
+        return null;
     }
 
 

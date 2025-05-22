@@ -70,6 +70,8 @@
       <root url="jar://$USER_HOME$/Downloads/automaton-1.12-1.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/InductiveMiner.jar!/" />
+    </SOURCES>
   </library>
 </component>
