@@ -6,17 +6,14 @@ import au.edu.unimelb.processmining.accuracy.abstraction.ProcessAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.distances.ConfusionMatrix;
 import au.edu.unimelb.processmining.accuracy.abstraction.distances.GraphEditDistance;
 import au.edu.unimelb.processmining.accuracy.abstraction.intermediate.AutomatonAbstraction;
+import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import com.raffaeleconforti.conversion.bpmn.BPMNToPetriNetConverter;
 import com.raffaeleconforti.conversion.petrinet.PetriNetToBPMNConverter;
 import de.drscc.automaton.Automaton;
 import de.drscc.importer.ImportProcessModel;
-import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
-import org.processmining.framework.packages.PackageManager;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.InductiveMiner.efficienttree.*;
-import org.processmining.plugins.InductiveMiner.reduceacceptingpetrinet.ReduceAcceptingPetriNetKeepLanguage;
 
 import java.util.*;
 
@@ -232,5 +229,38 @@ public class SubtraceAbstraction extends Abstraction {
 //            System.out.println("ERROR - impossible to parse the process object.");
             return null;
         }
+    }
+
+    public static SubtraceAbstraction abstractProcessBehaviour(Set<String> strings, int order) {
+        SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
+
+        for (String s : strings) {
+            Subtrace st = new Subtrace(order);
+            boolean isPrefix = s.startsWith("+");
+            boolean isSuffix = s.endsWith("-");
+
+            // Replace + and - markers
+            if (isPrefix) s = s.substring(1);
+            if (isSuffix && !s.isEmpty()) s = s.substring(0, s.length() - 1);
+
+            if (isPrefix) {
+                st.add(0);
+            }
+
+            for (char c : s.toCharArray()) {
+                int symbol = MarkovianAutomatonAbstraction.charToInt.getOrDefault(c, -1);
+                if (symbol != -1) {
+                    st.add(symbol);
+                }
+            }
+
+            if (isSuffix) {
+                st.add(Subtrace.INIT);
+            }
+
+            abstraction.addSubtrace(st, 1);
+        }
+
+        return abstraction;
     }
 }

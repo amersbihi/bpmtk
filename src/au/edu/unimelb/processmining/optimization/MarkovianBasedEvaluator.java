@@ -1,7 +1,7 @@
 package au.edu.unimelb.processmining.optimization;
 
 import au.edu.qut.processmining.log.SimpleLog;
-import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.Subtrace;
+import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
 import dk.brics.automaton.Automaton;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
@@ -42,30 +42,18 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
         SubtraceAbstraction staProcess;
         Object[] results = new Object[5];
 
+        long start = System.nanoTime();
+
         try {
             if (tree != null) {
-                Automaton mkAutomaton = MkAbstraction.computeMk(tree, tree.getRoot(), order);
-                staProcess = new SubtraceAbstraction(order);
+                // 1. Initialize mapping
+                MarkovianAutomatonAbstraction.initializeLabelMapping(tree);
 
-                for (String s : mkAutomaton.getFiniteStrings()) {
-                    s = s.replace("+", "").replace("-", "");
-                    if (s.isEmpty()) continue;
+                // 2. Compute Mk-automaton
+                Automaton mkAutomaton = MarkovianAutomatonAbstraction.computeMk(tree, tree.getRoot(), order);
 
-                    int[] intTrace = new int[s.length()];
-                    for (int i = 0; i < s.length(); i++) {
-                        intTrace[i] = s.charAt(i);  // ASCII mapping
-                    }
-
-                    Subtrace st = new Subtrace(order);
-                    for (int symbol : intTrace) st.add(symbol);
-                    staProcess.addSubtrace(st);
-                }
-                /*try {
-                    AutomatonAbstraction automatonAbstraction = new AutomatonAbstraction(, slog);
-                    staProcess = new ProcessAbstraction(automatonAbstraction).subtrace(order);
-                } catch (Exception e) {
-                    return null;
-                }*/
+                // 3. Convert automaton to SubtraceAbstraction using internal label mapping
+                staProcess = SubtraceAbstraction.abstractProcessBehaviour(mkAutomaton.getFiniteStrings(), order);
             } else if (bpmn != null) {
                 staProcess = SubtraceAbstraction.abstractProcessBehaviour(this.bpmn, order, slog);
             } else {
@@ -89,6 +77,9 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
             results[3] = null;
             results[4] = tree != null ? tree : bpmn;
         }
+
+        long end = System.nanoTime();
+        results[5] = end - start;
 
         return results;
     }

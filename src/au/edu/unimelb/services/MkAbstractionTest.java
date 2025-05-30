@@ -1,9 +1,9 @@
 package au.edu.unimelb.services;
 
 import au.edu.qut.processmining.log.SimpleLog;
+import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.Subtrace;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
-import au.edu.unimelb.processmining.optimization.MkAbstraction;
 import dk.brics.automaton.Automaton;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.impl.XLogImpl;
@@ -22,63 +22,51 @@ import org.processmining.processtree.ptml.importing.PtmlImportTree;
 import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class MkAbstractionTest {
 
-    private static final int K = 4;
-    static Map<String, Integer> reverseMap = new HashMap<>();
+    private static final int K = 3;
+    private static Map<String, Integer> label2id = new HashMap<>();
+    private static Map<Integer, String> id2label = new HashMap<>();
 
     public static void main(String[] args) throws Exception {
         String folderPath = "C:\\Users\\Amer\\PycharmProjects\\PythonProject\\generated_trees";
 
-        for (int i = 497; i <= 500; i++) {
+        for (int i = 1; i <= 500; i++) {
             File ptmlFile = new File(folderPath + "\\tree_" + i + ".ptml");
 
             System.out.println("Processing: " + ptmlFile.getName());
 
             try {
+                // Compute former abstraction
+                SubtraceAbstraction reference = getReferenceAbstraction(ptmlFile);
+
                 // Load EfficientTree
                 EfficientTree tree = ProcessTree2EfficientTree.convert(loadProcessTree(ptmlFile));
 
-                // Compute your Mk-abstraction
-                Automaton mkAutomaton = MkAbstraction.computeMk(tree, tree.getRoot(), K);
-                Set<String> mySubstrings = mkAutomaton.getFiniteStrings();
-
-                // Compute legacy Markov abstraction
-                SubtraceAbstraction reference = getReferenceAbstraction(ptmlFile);
-                Set<String> refSubstrings = reference.getSubtraces().stream()
-                        .map(Subtrace::print)
-                        .collect(Collectors.toSet());
-
-                // Convert reference IDs back to labels using the shared reverseMap
-                Set<String> converted = convertReferenceIDsToLabels(refSubstrings);
+                // Compute new Mk-abstraction
+                Automaton mkAutomaton = MarkovianAutomatonAbstraction.computeMk(tree, tree.getRoot(), K);
+                SubtraceAbstraction myAbstraction = mkAutomatonToSubtraceAbstraction(mkAutomaton.getFiniteStrings(), K);
 
                 // Compare the abstractions
-                assertEqualSubstrings(mySubstrings, converted);
+                List<String> onlyinMy = myAbstraction.computeDifferences(reference);
+                List<String> onlyinRef = reference.computeDifferences(myAbstraction);
+                if (onlyinMy.isEmpty() && onlyinRef.isEmpty()) {
+                    System.out.println("Abstractions Match");
+                } else {
+                    System.out.println("Differences: " + convertIDsToLabels(onlyinMy) + convertIDsToLabels(onlyinRef));
+                }
 
             } catch (Exception e) {
-                System.out.println("Error processing file " + ptmlFile.getName() + ": " + e.getMessage());
+                System.err.println("Error processing file " + ptmlFile.getName() + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }
     }
 
-    private static ProcessTree loadProcessTree(File ptmlFile) throws Exception {
-        PtmlImportTree plugin = new PtmlImportTree();
-        Ptml ptml = plugin.importPtmlFromStream(null, Files.newInputStream(ptmlFile.toPath()), ptmlFile.getName(), ptmlFile.length());
-        ProcessTree processTree = new ProcessTreeImpl();
-        ptml.unmarshall(processTree);
-        return processTree;
-    }
-
     private static SubtraceAbstraction getReferenceAbstraction(File ptmlFile) throws Exception {
         // 1. Load process tree and convert to EfficientTree
-        PtmlImportTree plugin = new PtmlImportTree();
-        Ptml ptml = plugin.importPtmlFromStream(null, Files.newInputStream(ptmlFile.toPath()), ptmlFile.getName(), ptmlFile.length());
-        ProcessTree processTree = new ProcessTreeImpl();
-        ptml.unmarshall(processTree);
-
+        ProcessTree processTree = loadProcessTree(ptmlFile);
         EfficientTree tree = ProcessTree2EfficientTree.convert(processTree);
 
         // 2. Convert to AcceptingPetriNet
@@ -87,47 +75,57 @@ public class MkAbstractionTest {
         AcceptingPetriNet apn = EfficientTree2AcceptingPetriNet.convert(tree);
         ReduceAcceptingPetriNetKeepLanguage.reduce(apn, canceller);
 
-        // 3. Extract Petri net, initial marking, and final marking
+        // 3. Extract Petri net, initial marking
         Petrinet net = apn.getNet();
         Marking im = apn.getInitialMarking();
 
-
-        // 6. Call legacy subtrace abstraction function
+        // 6. Call reference subtrace abstraction function
         return SubtraceAbstraction.abstractProcessBehaviour(net, im, K, createDummySimpleLog(net));
     }
 
-    public static SimpleLog createDummySimpleLog(Petrinet net) {
-        Map<String, Integer> traces = new HashMap<>();
-        Map<Integer, String> events = new HashMap<>();
-        int id = 1;
+    private static SubtraceAbstraction mkAutomatonToSubtraceAbstraction(Set<String> mkTraces, int order) {
+        SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
 
-        for (Transition t : net.getTransitions()) {
-            if (!t.isInvisible()) {
-                String label = t.getLabel();
-                if (!reverseMap.containsKey(label)) {
-                    reverseMap.put(label, id);
-                    events.put(id, label);
-                    id++;
-                }
+        // mkTraces = mkTraces.stream().filter(trace -> !(trace.startsWith("+") || trace.endsWith("-"))).collect(Collectors.toSet());
+
+        for (String trace : mkTraces) {
+            Subtrace subtrace = new Subtrace(order);
+            boolean endsWithInit = false;
+
+            if (trace.startsWith("+")) {
+                trace = trace.substring(1);
+                subtrace.add(0);
             }
+            if (trace.endsWith("-")) {
+                trace = trace.substring(0, trace.length() - 1);
+                endsWithInit = true;
+            }
+
+            if (trace.isEmpty()) continue;
+
+            for (char c : trace.toCharArray()) {
+                String matchedLabel = label2id.keySet().stream()
+                        .filter(label -> label.charAt(0) == c)
+                        .findFirst()
+                        .orElse(null);
+
+                int id = label2id.get(matchedLabel);
+                subtrace.add(id);
+            }
+
+            if (endsWithInit) {
+                subtrace.add(Subtrace.INIT);
+            }
+
+            abstraction.addSubtrace(subtrace, 1);
         }
 
-        XLog dummyXLog = new XLogImpl(null);
-
-        SimpleLog log = new SimpleLog(traces, events, dummyXLog);
-        log.setReverseMap(reverseMap);
-
-        return log;
+        return abstraction;
     }
 
-    public static Set<String> convertReferenceIDsToLabels(Set<String> referenceStrings) {
-        // Invert the reverseMap to get ID → label
-        Map<Integer, String> idToLabel = new HashMap<>();
-        for (Map.Entry<String, Integer> entry : reverseMap.entrySet()) {
-            idToLabel.put(entry.getValue(), entry.getKey());
-        }
+    private static List<String> convertIDsToLabels(List<String> referenceStrings) {
 
-        Set<String> result = new HashSet<>();
+        List<String> result = new ArrayList<>();
         for (String s : referenceStrings) {
             if (s.isEmpty()) continue;
             String[] parts = s.split(":");
@@ -137,9 +135,9 @@ public class MkAbstractionTest {
                 if (token.isEmpty()) continue;
                 try {
                     int id = Integer.parseInt(token);
-                    String label = idToLabel.get(id);
+                    String label = id2label.get(id);
                     if (label != null && !label.isEmpty()) {
-                        sb.append(label.charAt(0)); // Use first character for label
+                        sb.append(label.charAt(0));
                     }
                 } catch (NumberFormatException e) {
                     // skip invalid token
@@ -152,23 +150,34 @@ public class MkAbstractionTest {
         return result;
     }
 
+    private static SimpleLog createDummySimpleLog(Petrinet net) {
+        Map<String, Integer> traces = new HashMap<>();
+        int id = 1;
 
-    private static void assertEqualSubstrings(Set<String> a, Set<String> b) {
-        Set<String> cleanA = a.stream()
-                .map(s -> s.replaceAll("[+-]", "")) // Remove + and - characters
-                .collect(Collectors.toSet());
-
-        Set<String> onlyInA = new HashSet<>(cleanA);
-        Set<String> onlyInB = new HashSet<>(b);
-        onlyInA.removeAll(b);
-        onlyInB.removeAll(cleanA);
-
-        if (!onlyInB.isEmpty()) {
-            System.out.println("Mismatches found:");
-            System.out.println("Only in your abstraction: " + onlyInA);
-            System.out.println("Only in reference: " + onlyInB);
-        } else {
-            System.out.println("Test passed: abstractions match.");
+        for (Transition t : net.getTransitions()) {
+            if (!t.isInvisible()) {
+                String label = t.getLabel();
+                if (!label2id.containsKey(label)) {
+                    label2id.put(label, id);
+                    id2label.put(id, label);
+                    id++;
+                }
+            }
         }
+
+        XLog dummyXLog = new XLogImpl(null);
+
+        SimpleLog log = new SimpleLog(traces, id2label, dummyXLog);
+        log.setReverseMap(label2id);
+
+        return log;
+    }
+
+    private static ProcessTree loadProcessTree(File ptmlFile) throws Exception {
+        PtmlImportTree plugin = new PtmlImportTree();
+        Ptml ptml = plugin.importPtmlFromStream(null, Files.newInputStream(ptmlFile.toPath()), ptmlFile.getName(), ptmlFile.length());
+        ProcessTree processTree = new ProcessTreeImpl();
+        ptml.unmarshall(processTree);
+        return processTree;
     }
 }

@@ -1,4 +1,4 @@
-package au.edu.unimelb.processmining.optimization;
+package au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton;
 
 import dk.brics.automaton.*;
 import org.processmining.plugins.InductiveMiner.efficienttree.*;
@@ -11,7 +11,12 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.*;
 
-public class MkAbstraction {
+public class MarkovianAutomatonAbstraction {
+
+    private static final Map<Integer, Character> intToChar = new HashMap<>();
+    public static final Map<Character, Integer> charToInt = new HashMap<>();
+    private static char nextChar = 'A';
+
     public static void main(String[] args) throws Exception {
 
 
@@ -36,8 +41,15 @@ public class MkAbstraction {
     }
 
     public static Automaton computeMk(EfficientTree tree, int node, int k) {
+        /*if (intToChar.isEmpty()) initializeLabelMapping(tree);
+
         if (tree.isActivity(node)) {
-            return mkLeafNode(tree.getActivityName(node).toCharArray()[0], k);        // modify if working with strings
+            int activityInt = tree.getActivity(node);
+            char label = intToChar.get(activityInt);
+            return mkLeafNode(label, k);
+        }*/
+        if (tree.isActivity(node)) {
+            return mkLeafNode(tree.getActivityName(node).toCharArray()[0], k);              // for testing in MkAbstractionTest
         }
         if (tree.isTau(node)) {
             return mkLeafNode('τ', k);
@@ -547,5 +559,20 @@ public class MkAbstraction {
         }
 
         return mk;
+    }
+
+    public static void initializeLabelMapping(EfficientTree tree) {
+        intToChar.clear();
+        charToInt.clear();
+        nextChar = 'A';
+
+        for (int i = 0; i < tree.getInt2activity().length; i++) {
+            String activity = tree.getInt2activity()[i];
+            if (activity != null && !intToChar.containsKey(i)) {
+                char c = nextChar++;
+                intToChar.put(i, c);
+                charToInt.put(c, i);
+            }
+        }
     }
 }
