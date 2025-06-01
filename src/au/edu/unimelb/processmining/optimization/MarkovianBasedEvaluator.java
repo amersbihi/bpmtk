@@ -40,9 +40,9 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
     @Override
     public Object[] call() throws Exception {
         SubtraceAbstraction staProcess;
-        Object[] results = new Object[5];
+        Object[] results = new Object[6];
 
-        long start = System.nanoTime();
+        long start = System.currentTimeMillis();
 
         try {
             if (tree != null) {
@@ -78,7 +78,7 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
             results[4] = tree != null ? tree : bpmn;
         }
 
-        long end = System.nanoTime();
+        long end = System.currentTimeMillis();
         results[5] = end - start;
 
         return results;

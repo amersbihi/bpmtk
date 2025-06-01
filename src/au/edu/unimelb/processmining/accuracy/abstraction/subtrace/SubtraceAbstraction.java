@@ -234,31 +234,50 @@ public class SubtraceAbstraction extends Abstraction {
     public static SubtraceAbstraction abstractProcessBehaviour(Set<String> strings, int order) {
         SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
 
+        Set<String> prefixes = new HashSet<>();
+        Set<String> suffixes = new HashSet<>();
+        Set<String> finalTraces = new HashSet<>();
+
         for (String s : strings) {
-            Subtrace st = new Subtrace(order);
-            boolean isPrefix = s.startsWith("+");
-            boolean isSuffix = s.endsWith("-");
-
-            // Replace + and - markers
-            if (isPrefix) s = s.substring(1);
-            if (isSuffix && !s.isEmpty()) s = s.substring(0, s.length() - 1);
-
-            if (isPrefix) {
-                st.add(0);
+            if (s.equals("+-")) {
+                Subtrace empty = new Subtrace(order);
+                empty.add(Subtrace.INIT);
+                abstraction.addSubtrace(empty, 1);
+                continue;
+            } else if (s.startsWith("+") && s.endsWith("-")) {
+                String stripped = s.substring(1, s.length() - 1);
+                prefixes.add(stripped);
+                suffixes.add(stripped);
+            } else if (s.startsWith("+")) {
+                prefixes.add(s.substring(1));
+            } else if (s.endsWith("-")) {
+                suffixes.add(s.substring(0, s.length() - 1));
+            } else {
+                finalTraces.add(s);
             }
+        }
 
-            for (char c : s.toCharArray()) {
+        for (String prefix : prefixes) {
+            if (suffixes.contains(prefix)) {
+                finalTraces.add(prefix);
+            }
+        }
+
+        for (String trace : finalTraces) {
+            Subtrace subtrace = new Subtrace(order);
+
+            for (char c : trace.toCharArray()) {
                 int symbol = MarkovianAutomatonAbstraction.charToInt.getOrDefault(c, -1);
                 if (symbol != -1) {
-                    st.add(symbol);
+                    subtrace.add(symbol);
                 }
             }
 
-            if (isSuffix) {
-                st.add(Subtrace.INIT);
+            if (suffixes.contains(trace)) {
+                subtrace.add(Subtrace.INIT);
             }
 
-            abstraction.addSubtrace(st, 1);
+            abstraction.addSubtrace(subtrace, 1);
         }
 
         return abstraction;

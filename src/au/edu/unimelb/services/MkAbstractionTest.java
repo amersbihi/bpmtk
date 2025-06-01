@@ -29,14 +29,22 @@ public class MkAbstractionTest {
     private static Map<String, Integer> label2id = new HashMap<>();
     private static Map<Integer, String> id2label = new HashMap<>();
 
+
     public static void main(String[] args) throws Exception {
-        String folderPath = "C:\\Users\\Amer\\PycharmProjects\\PythonProject\\generated_trees";
+        File input = new File(args[0]);
+        File[] filesToProcess;
 
-        for (int i = 1; i <= 500; i++) {
-            File ptmlFile = new File(folderPath + "\\tree_" + i + ".ptml");
+        if (input.isDirectory()) {
+            filesToProcess = input.listFiles((dir, name) -> name.endsWith(".ptml"));
+        } else if (input.isFile() && input.getName().endsWith(".ptml")) {
+            filesToProcess = new File[]{input};
+        } else {
+            System.err.println("Invalid input. Please provide a valid PTML file or directory.");
+            return;
+        }
 
+        for (File ptmlFile : filesToProcess) {
             System.out.println("Processing: " + ptmlFile.getName());
-
             try {
                 // Compute former abstraction
                 SubtraceAbstraction reference = getReferenceAbstraction(ptmlFile);
@@ -56,12 +64,73 @@ public class MkAbstractionTest {
                 } else {
                     System.out.println("Differences: " + convertIDsToLabels(onlyinMy) + convertIDsToLabels(onlyinRef));
                 }
-
             } catch (Exception e) {
                 System.err.println("Error processing file " + ptmlFile.getName() + ": " + e.getMessage());
                 e.printStackTrace();
             }
         }
+    }
+
+    private static SubtraceAbstraction mkAutomatonToSubtraceAbstraction(Set<String> acceptedStrings, int order) {
+        SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
+
+        Set<String> prefixes = new HashSet<>();
+        Set<String> suffixes = new HashSet<>();
+        Set<String> mkTraces = new HashSet<>();
+
+        for (String s : acceptedStrings) {
+            if (s.equals("+-")) {
+                Subtrace empty = new Subtrace(order);
+                empty.add(Subtrace.INIT);
+                abstraction.addSubtrace(empty, 1);
+            } else if (s.startsWith("+") && s.endsWith("-")) {
+                prefixes.add(s.substring(1, s.length() - 1));
+                suffixes.add(s.substring(1, s.length() - 1));
+            } else if (s.startsWith("+")) {
+                prefixes.add(s.substring(1));
+            } else if (s.endsWith("-")) {
+                suffixes.add(s.substring(0, s.length() - 1));
+            } else {
+                mkTraces.add(s);
+            }
+        }
+
+        // compute intersection
+        for (String prefix : prefixes) {
+            if (suffixes.contains(prefix)) {
+                mkTraces.add(prefix);
+            }
+        }
+
+        for (String trace : mkTraces) {
+            Subtrace subtrace = new Subtrace(order);
+
+            for (char c : trace.toCharArray()) {
+                String matchedLabel = label2id.keySet().stream()
+                        .filter(label -> label.charAt(0) == c)
+                        .findFirst()
+                        .orElse(null);
+
+                int id = label2id.get(matchedLabel);
+                subtrace.add(id);
+            }
+
+            if (suffixes.contains(trace)) {
+                subtrace.add(Subtrace.INIT);
+            }
+
+            abstraction.addSubtrace(subtrace, 1);
+        }
+
+        return abstraction;
+    }
+
+    private static ProcessTree loadProcessTree(File ptmlFile) throws Exception {
+        PtmlImportTree plugin = new PtmlImportTree();
+        Ptml ptml = plugin.importPtmlFromStream(null, Files.newInputStream(ptmlFile.toPath()), ptmlFile.getName(), ptmlFile.length());
+        ProcessTree processTree = new ProcessTreeImpl();
+        ptml.unmarshall(processTree);
+        return processTree;
     }
 
     private static SubtraceAbstraction getReferenceAbstraction(File ptmlFile) throws Exception {
@@ -81,46 +150,6 @@ public class MkAbstractionTest {
 
         // 6. Call reference subtrace abstraction function
         return SubtraceAbstraction.abstractProcessBehaviour(net, im, K, createDummySimpleLog(net));
-    }
-
-    private static SubtraceAbstraction mkAutomatonToSubtraceAbstraction(Set<String> mkTraces, int order) {
-        SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
-
-        // mkTraces = mkTraces.stream().filter(trace -> !(trace.startsWith("+") || trace.endsWith("-"))).collect(Collectors.toSet());
-
-        for (String trace : mkTraces) {
-            Subtrace subtrace = new Subtrace(order);
-            boolean endsWithInit = false;
-
-            if (trace.startsWith("+")) {
-                trace = trace.substring(1);
-                subtrace.add(0);
-            }
-            if (trace.endsWith("-")) {
-                trace = trace.substring(0, trace.length() - 1);
-                endsWithInit = true;
-            }
-
-            if (trace.isEmpty()) continue;
-
-            for (char c : trace.toCharArray()) {
-                String matchedLabel = label2id.keySet().stream()
-                        .filter(label -> label.charAt(0) == c)
-                        .findFirst()
-                        .orElse(null);
-
-                int id = label2id.get(matchedLabel);
-                subtrace.add(id);
-            }
-
-            if (endsWithInit) {
-                subtrace.add(Subtrace.INIT);
-            }
-
-            abstraction.addSubtrace(subtrace, 1);
-        }
-
-        return abstraction;
     }
 
     private static List<String> convertIDsToLabels(List<String> referenceStrings) {
@@ -171,13 +200,5 @@ public class MkAbstractionTest {
         log.setReverseMap(label2id);
 
         return log;
-    }
-
-    private static ProcessTree loadProcessTree(File ptmlFile) throws Exception {
-        PtmlImportTree plugin = new PtmlImportTree();
-        Ptml ptml = plugin.importPtmlFromStream(null, Files.newInputStream(ptmlFile.toPath()), ptmlFile.getName(), ptmlFile.length());
-        ProcessTree processTree = new ProcessTreeImpl();
-        ptml.unmarshall(processTree);
-        return processTree;
     }
 }

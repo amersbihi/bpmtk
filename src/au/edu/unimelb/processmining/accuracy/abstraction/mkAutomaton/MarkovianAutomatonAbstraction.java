@@ -41,9 +41,9 @@ public class MarkovianAutomatonAbstraction {
     }
 
     public static Automaton computeMk(EfficientTree tree, int node, int k) {
-        /*if (intToChar.isEmpty()) initializeLabelMapping(tree);
+        if (intToChar.isEmpty()) initializeLabelMapping(tree);
 
-        if (tree.isActivity(node)) {
+        /*if (tree.isActivity(node)) {
             int activityInt = tree.getActivity(node);
             char label = intToChar.get(activityInt);
             return mkLeafNode(label, k);

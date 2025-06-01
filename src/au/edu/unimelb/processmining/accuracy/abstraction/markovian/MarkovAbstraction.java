@@ -86,7 +86,7 @@ public class MarkovAbstraction extends Abstraction {
 
     public void print() {
 //        for( Edge e : edges.keySet() ) System.out.println(e.print() + " * " + edges.get(e) );
-        for( Node n : nodes.keySet() ) System.out.println(n.getLabel());
+        for (Node n : nodes.keySet()) System.out.println(n.getLabel());
         System.out.println("INFO - edges: " + edges.size() + " nodes: " + nodes.size());
     }
 }
