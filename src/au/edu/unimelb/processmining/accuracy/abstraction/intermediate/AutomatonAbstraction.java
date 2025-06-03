@@ -1,8 +1,6 @@
 package au.edu.unimelb.processmining.accuracy.abstraction.intermediate;
 
 import au.edu.qut.processmining.log.SimpleLog;
-import au.edu.unimelb.processmining.accuracy.abstraction.markovian.MarkovLabel;
-import au.edu.unimelb.processmining.accuracy.abstraction.set.SetLabel;
 import de.drscc.automaton.Automaton;
 import de.drscc.automaton.Transition;
 import org.processmining.models.graphbased.directed.transitionsystem.State;
@@ -145,7 +143,7 @@ public class AutomatonAbstraction {
             }
         }
 
-        if(wid < -2) System.out.println("ERROR - foreigner activities found!");
+        // if(wid < -2) System.out.println("ERROR - foreigner activities found!");
     }
 
     private void populate(Automaton automaton,  Map<Integer, String> eNames) {

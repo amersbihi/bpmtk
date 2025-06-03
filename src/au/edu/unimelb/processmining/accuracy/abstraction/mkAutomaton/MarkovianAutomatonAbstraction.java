@@ -522,6 +522,7 @@ public class MarkovianAutomatonAbstraction {
             State q3 = new State();
             State q4 = new State();
             q0mk.addTransition(new Transition('+', q1));
+            q1.addTransition(new Transition('-',qf));
             q4.addTransition(new Transition('-', qf));
             q3.addTransition(new Transition('-', qf));
             for (char c : alphabet) {
@@ -542,6 +543,8 @@ public class MarkovianAutomatonAbstraction {
             State q6 = new State();
 
             q0mk.addTransition(new Transition('+', q1));
+            q1.addTransition(new Transition('-',qf));
+            q3.addTransition(new Transition('-',qf));
             q5.addTransition(new Transition('-', qf));
             q6.addTransition(new Transition('-', qf));
             for (char c : alphabet) {
@@ -555,6 +558,38 @@ public class MarkovianAutomatonAbstraction {
                 q2.addTransition(new Transition(c, q4));
                 q4.addTransition(new Transition(c, q6));
                 q6.addTransition(new Transition(c, qf));
+            }
+        }
+
+        if (k == 5) {
+            State q1 = new State();
+            State q2 = new State();
+            State q3 = new State();
+            State q4 = new State();
+            State q5 = new State();
+            State q6 = new State();
+            State q7 = new State();
+            State q8 = new State();
+
+            q0mk.addTransition(new Transition('+', q1));
+            q1.addTransition(new Transition('-',qf));
+            q3.addTransition(new Transition('-',qf));
+            q5.addTransition(new Transition('-',qf));
+            q7.addTransition(new Transition('-', qf));
+            q8.addTransition(new Transition('-', qf));
+            for (char c : alphabet) {
+                // From initial
+                q0mk.addTransition(new Transition(c, q2));
+                // + path
+                q1.addTransition(new Transition(c, q3));
+                q3.addTransition(new Transition(c, q5));
+                q5.addTransition(new Transition(c, q7));
+                q7.addTransition(new Transition(c, qf));
+                // - path
+                q2.addTransition(new Transition(c, q4));
+                q4.addTransition(new Transition(c, q6));
+                q6.addTransition(new Transition(c, q8));
+                q8.addTransition(new Transition(c, qf));
             }
         }
 

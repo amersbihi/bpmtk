@@ -14,7 +14,11 @@ import org.processmining.models.graphbased.directed.petrinet.elements.Transition
 import org.processmining.models.semantics.petrinet.Marking;
 import org.processmining.plugins.InductiveMiner.efficienttree.*;
 import org.processmining.plugins.InductiveMiner.reduceacceptingpetrinet.ReduceAcceptingPetriNetKeepLanguage;
+import org.processmining.processtree.Block;
+import org.processmining.processtree.Node;
 import org.processmining.processtree.ProcessTree;
+import org.processmining.processtree.impl.AbstractBlock.Seq;
+import org.processmining.processtree.impl.AbstractTask;
 import org.processmining.processtree.impl.ProcessTreeImpl;
 import org.processmining.processtree.ptml.Ptml;
 import org.processmining.processtree.ptml.importing.PtmlImportTree;
@@ -25,7 +29,7 @@ import java.util.*;
 
 public class MkAbstractionTest {
 
-    private static final int K = 3;
+    private static final int K = 5;
     private static Map<String, Integer> label2id = new HashMap<>();
     private static Map<Integer, String> id2label = new HashMap<>();
 
@@ -71,38 +75,13 @@ public class MkAbstractionTest {
         }
     }
 
-    private static SubtraceAbstraction mkAutomatonToSubtraceAbstraction(Set<String> acceptedStrings, int order) {
+    public static SubtraceAbstraction mkAutomatonToSubtraceAbstraction(Set<String> acceptedStrings, int order) {
         SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
 
-        Set<String> prefixes = new HashSet<>();
-        Set<String> suffixes = new HashSet<>();
-        Set<String> mkTraces = new HashSet<>();
-
-        for (String s : acceptedStrings) {
-            if (s.equals("+-")) {
-                Subtrace empty = new Subtrace(order);
-                empty.add(Subtrace.INIT);
-                abstraction.addSubtrace(empty, 1);
-            } else if (s.startsWith("+") && s.endsWith("-")) {
-                prefixes.add(s.substring(1, s.length() - 1));
-                suffixes.add(s.substring(1, s.length() - 1));
-            } else if (s.startsWith("+")) {
-                prefixes.add(s.substring(1));
-            } else if (s.endsWith("-")) {
-                suffixes.add(s.substring(0, s.length() - 1));
-            } else {
-                mkTraces.add(s);
+        for (String trace : acceptedStrings) {
+            if (trace.startsWith("+")){
+                trace = "-" + trace.substring(1);
             }
-        }
-
-        // compute intersection
-        for (String prefix : prefixes) {
-            if (suffixes.contains(prefix)) {
-                mkTraces.add(prefix);
-            }
-        }
-
-        for (String trace : mkTraces) {
             Subtrace subtrace = new Subtrace(order);
 
             for (char c : trace.toCharArray()) {
@@ -115,7 +94,7 @@ public class MkAbstractionTest {
                 subtrace.add(id);
             }
 
-            if (suffixes.contains(trace)) {
+            if (trace.endsWith("-")){
                 subtrace.add(Subtrace.INIT);
             }
 
@@ -125,7 +104,7 @@ public class MkAbstractionTest {
         return abstraction;
     }
 
-    private static ProcessTree loadProcessTree(File ptmlFile) throws Exception {
+    public static ProcessTree loadProcessTree(File ptmlFile) throws Exception {
         PtmlImportTree plugin = new PtmlImportTree();
         Ptml ptml = plugin.importPtmlFromStream(null, Files.newInputStream(ptmlFile.toPath()), ptmlFile.getName(), ptmlFile.length());
         ProcessTree processTree = new ProcessTreeImpl();
@@ -134,8 +113,8 @@ public class MkAbstractionTest {
     }
 
     private static SubtraceAbstraction getReferenceAbstraction(File ptmlFile) throws Exception {
-        // 1. Load process tree and convert to EfficientTree
-        ProcessTree processTree = loadProcessTree(ptmlFile);
+        // 1. Load process tree and convert to EfficientTree with + and - as end markers
+        ProcessTree processTree = wrapWithStartEnd(loadProcessTree(ptmlFile));
         EfficientTree tree = ProcessTree2EfficientTree.convert(processTree);
 
         // 2. Convert to AcceptingPetriNet
@@ -150,6 +129,36 @@ public class MkAbstractionTest {
 
         // 6. Call reference subtrace abstraction function
         return SubtraceAbstraction.abstractProcessBehaviour(net, im, K, createDummySimpleLog(net));
+    }
+
+    public static ProcessTree wrapWithStartEnd(ProcessTree originalTree) {
+        // Create a new tree
+        ProcessTree newTree = new ProcessTreeImpl();
+
+        // Create nodes
+        Block outerSeq = new Seq("");
+        Block innerSeq = new Seq("");
+        Node plusNode = new AbstractTask.Manual("-");
+        Node minusNode = new AbstractTask.Manual("-");
+
+        // Add nodes to tree
+        newTree.addNode(outerSeq);
+        newTree.addNode(innerSeq);
+        newTree.addNode(plusNode);
+        newTree.addNode(minusNode);
+
+        Node originalRoot = originalTree.getRoot();
+        newTree.addNode(originalRoot);
+
+        // Build structure
+        outerSeq.addChild(plusNode);
+        outerSeq.addChild(innerSeq);
+        innerSeq.addChild(originalTree.getRoot());
+        innerSeq.addChild(minusNode);
+
+        newTree.setRoot(outerSeq);
+
+        return newTree;
     }
 
     private static List<String> convertIDsToLabels(List<String> referenceStrings) {
@@ -193,6 +202,7 @@ public class MkAbstractionTest {
                 }
             }
         }
+
 
         XLog dummyXLog = new XLogImpl(null);
 
