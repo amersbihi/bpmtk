@@ -1,10 +1,4 @@
 # Default ignored files
 /shelf/
 /workspace.xml
-logs/DomesticDeclarations.xes
-logs/InternationalDeclarations.xes
-logs/PermitLog.xes
-logs/PrepaidTravelCost.xes
-logs/RequestForPayment.xes
 out/
-*.xes
