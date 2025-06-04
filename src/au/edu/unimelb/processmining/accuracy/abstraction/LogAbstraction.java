@@ -30,7 +30,7 @@ public class LogAbstraction {
         String src;
         String tgt;
 
-        for( String t : traces.keySet() ) {
+        for (String t : traces.keySet()) {
             trace = new StringTokenizer(t, "::");
             traceFrequency = traces.get(t);
 //            System.out.println("DEBUG - (" + traceFrequency + ")trace: " + t);
@@ -43,7 +43,7 @@ public class LogAbstraction {
 //            we do no parse the final artificial event (that is -1)
             src = label.print();
             abstraction.addNode(src, traceFrequency);
-            while( trace.hasMoreTokens() && ((event = Integer.valueOf(trace.nextToken())) != -1) ) {
+            while (trace.hasMoreTokens() && ((event = Integer.valueOf(trace.nextToken())) != -1)) {
                 label.add(event);
                 tgt = label.print();
 //                System.out.println("DEBUG - from " + src);
@@ -68,18 +68,18 @@ public class LogAbstraction {
         String src;
         String tgt;
 
-        for( String t : traces.keySet() ) {
+        for (String t : traces.keySet()) {
 //            System.out.println("DEBUG - trace: " + t);
             trace = new StringTokenizer(t, "::");
             traceFrequency = traces.get(t);
 
 //            consuming the start event (artificial, always 0)
             trace.nextToken();
-            label = new SetLabel(log.getReverseMap().size()+1);
+            label = new SetLabel(log.getReverseMap().size() + 1);
 
 //            we read the next event of the trace until it is finished
 //            we do no parse the final artificial event (that is -1)
-            while( trace.hasMoreTokens() && ((event = Integer.valueOf(trace.nextToken())) != -1) ) {
+            while (trace.hasMoreTokens() && ((event = Integer.valueOf(trace.nextToken())) != -1)) {
 //                the first node of the abstraction is the empty set
                 src = label.print();
                 abstraction.addNode(src, traceFrequency);
@@ -104,7 +104,7 @@ public class LogAbstraction {
         int event;
         Subtrace subtrace;
 
-        for( String t : traces.keySet() ) {
+        for (String t : traces.keySet()) {
             trace = new StringTokenizer(t, "::");
             traceFrequency = traces.get(t);
 //            System.out.println("DEBUG - (" + traceFrequency + ")trace: " + t);
@@ -116,7 +116,7 @@ public class LogAbstraction {
 //            we read the next event of the trace until it is finished
 //            we do no parse the final artificial event (that is -1)
 
-            while( trace.hasMoreTokens() && ((event = Integer.valueOf(trace.nextToken())) != -1) ) {
+            while (trace.hasMoreTokens() && ((event = Integer.valueOf(trace.nextToken())) != -1)) {
                 subtrace.add(event);
                 abstraction.addSubtrace(new Subtrace(subtrace), traceFrequency);
             }
@@ -126,6 +126,38 @@ public class LogAbstraction {
         }
 
 //        abstraction.powerup();
+        return abstraction;
+    }
+
+    public static SubtraceAbstraction subtraceTree(SimpleLog log, int order) {
+        SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
+        Map<String, Integer> traces = log.getTraces();
+
+        for (String t : traces.keySet()) {
+            StringTokenizer trace = new StringTokenizer(t, "::");
+            int traceFrequency = traces.get(t);
+
+            int event;
+            Subtrace subtrace = new Subtrace(order);
+
+            while (trace.hasMoreTokens()) {
+                event = Integer.parseInt(trace.nextToken());
+
+                // Replace start (0) and end (-1) with 1
+                if (event == 0 || event == -1) {
+                    subtrace.add(1);
+                } else {
+                    subtrace.add(event);
+                }
+                subtrace.add(event);
+
+                abstraction.addSubtrace(new Subtrace(subtrace), traceFrequency);
+            }
+
+            subtrace.add(INIT);
+            abstraction.addSubtrace(subtrace, traceFrequency);
+        }
+
         return abstraction;
     }
 }

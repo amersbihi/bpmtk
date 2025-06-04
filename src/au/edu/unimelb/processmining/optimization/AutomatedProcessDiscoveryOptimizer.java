@@ -110,7 +110,7 @@ public class AutomatedProcessDiscoveryOptimizer {
         try {
             efficientTreeExportPlugin.exportDefault(etuiPluginContext, tree, new File(path));
         } catch (Exception e) {
-            System.out.println("ERROR - impossible to export the BPMN");
+            System.out.println("ERROR - impossible to export the Tree");
         }
     }
 

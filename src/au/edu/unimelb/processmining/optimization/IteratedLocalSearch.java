@@ -251,7 +251,7 @@ public class IteratedLocalSearch implements Metaheuristics {
         int iterations = 0;
         int icounter = 0;
         perturbations = 0;
-        staLog = LogAbstraction.subtrace(slog, order);
+        staLog = LogAbstraction.subtraceTree(slog, order);
 
         ExecutorService multiThreadService;
         MarkovianBasedEvaluator evalThread;

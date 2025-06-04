@@ -35,7 +35,7 @@ import java.util.*;
  */
 public class LogParser {
 
-//    !!WARNING - DO NOT CHANGE THESE VALUES!
+    //    !!WARNING - DO NOT CHANGE THESE VALUES!
     public static final int STARTCODE = 0;
     public static final int ENDCODE = -1;
 
@@ -66,13 +66,12 @@ public class LogParser {
         try {
             reader = new BufferedReader(new FileReader(path));
 
-            while( reader.ready() )
-            {
+            while (reader.ready()) {
                 trace = reader.readLine();
                 tokenizer = new StringTokenizer(trace, "::");
                 tokenizer.nextToken();
 
-                while( tokenizer.hasMoreTokens() ) {
+                while (tokenizer.hasMoreTokens()) {
                     event = tokenizer.nextToken();
                     labels.add(event);
                 }
@@ -93,20 +92,19 @@ public class LogParser {
 
             reader = new BufferedReader(new FileReader(path));
 
-            while( reader.ready() )
-            {
+            while (reader.ready()) {
                 trace = reader.readLine();
                 tokenizer = new StringTokenizer(trace, "::");
                 frequency = Integer.valueOf(tokenizer.nextToken());
 
                 strace = "::" + STARTCODE + "::";
-                while( tokenizer.hasMoreTokens() ) {
+                while (tokenizer.hasMoreTokens()) {
                     event = tokenizer.nextToken();
                     strace += (labelsToIDs.get(event) + "::");
                 }
                 strace += ENDCODE + "::";
 
-                if(!traces.containsKey(strace))  traces.put(strace, frequency);
+                if (!traces.containsKey(strace)) traces.put(strace, frequency);
                 else traces.put(strace, traces.get(strace) + frequency);
             }
 
@@ -117,7 +115,7 @@ public class LogParser {
             log.setStartcode(STARTCODE);
             log.setEndcode(ENDCODE);
 
-        } catch ( IOException ioe ) {
+        } catch (IOException ioe) {
             System.out.println("ERROR - something went wrong while reading the log file: " + path);
             return null;
         }
@@ -166,15 +164,15 @@ public class LogParser {
         events.put(ENDCODE, "autogen-end");
 
 
-        for( tIndex = 0; tIndex < totalTraces; tIndex++ ) {
+        for (tIndex = 0; tIndex < totalTraces; tIndex++) {
             /*  we firstly get all the concept names
-            *   and we map them into numbers for fast processing
-            */
+             *   and we map them into numbers for fast processing
+             */
 
             trace = log.get(tIndex);
             traceSize = trace.size();
 
-            for( eIndex = 0; eIndex < traceSize; eIndex++ ) {
+            for (eIndex = 0; eIndex < traceSize; eIndex++) {
                 event = trace.get(eIndex);
                 label = xEventClassifier.getClassIdentity(event);
                 labels.add(label);
@@ -184,8 +182,9 @@ public class LogParser {
         orderedLabels = new ArrayList<>(labels);
         Collections.sort(orderedLabels);
 
-        LID = 1;
-        for( String l : orderedLabels ) {
+        LID = 2;
+        labelsToIDs.put("-", LID);
+        for (String l : orderedLabels) {
             labelsToIDs.put(l, LID);
             events.put(LID, l);
             reverseMap.put(l, LID);
@@ -193,23 +192,23 @@ public class LogParser {
             LID++;
         }
 
-        exclusiveness = new int[LID*LID];
-        for(int i = 0; i<exclusiveness.length; i++) exclusiveness[i] = 0;
+        exclusiveness = new int[LID * LID];
+        for (int i = 0; i < exclusiveness.length; i++) exclusiveness[i] = 0;
 
         totalEvents = 0;
-        for( tIndex = 0; tIndex < totalTraces; tIndex++ ) {
+        for (tIndex = 0; tIndex < totalTraces; tIndex++) {
             executed.clear();
             /* we convert each trace in the log into a string
-            *  each string will be a sequence of "::x" terminated with "::", where:
-            *  '::' is a separator
-            *  'x' is an integer encoding the name of the original event
-            */
+             *  each string will be a sequence of "::x" terminated with "::", where:
+             *  '::' is a separator
+             *  'x' is an integer encoding the name of the original event
+             */
             trace = log.get(tIndex);
             traceSize = trace.size();
 
             oldTotalEvents = totalEvents;
             sTrace = "::" + Integer.toString(STARTCODE) + ":";
-            for( eIndex = 0; eIndex < traceSize; eIndex++ ) {
+            for (eIndex = 0; eIndex < traceSize; eIndex++) {
                 totalEvents++;
                 event = trace.get(eIndex);
                 label = xEventClassifier.getClassIdentity(event);
@@ -219,17 +218,17 @@ public class LogParser {
             sTrace += ":" + Integer.toString(ENDCODE) + "::";
 
             traceLength = totalEvents - oldTotalEvents;
-            if( longestTrace < traceLength ) longestTrace = traceLength;
-            if( shortestTrace > traceLength ) shortestTrace = traceLength;
+            if (longestTrace < traceLength) longestTrace = traceLength;
+            if (shortestTrace > traceLength) shortestTrace = traceLength;
 
-            if( !traces.containsKey(sTrace) ) traces.put(sTrace, 0);
-            traces.put(sTrace, traces.get(sTrace)+1);
+            if (!traces.containsKey(sTrace)) traces.put(sTrace, 0);
+            traces.put(sTrace, traces.get(sTrace) + 1);
 
-            for(int a=0; a < LID; a++) {
-                if(!executed.contains(a)) {
-                    for(int x : executed) {
-                        exclusiveness[x*LID + a]++;
-                        exclusiveness[a*LID + x]++;
+            for (int a = 0; a < LID; a++) {
+                if (!executed.contains(a)) {
+                    for (int x : executed) {
+                        exclusiveness[x * LID + a]++;
+                        exclusiveness[a * LID + x]++;
                     }
                 }
             }
@@ -268,8 +267,8 @@ public class LogParser {
         int parsed = 0;
         int leastFrequent = 0;
 
-        for( String trace : sortedTraces.keySet() ) {
-            if( parsed < maxTraces ) {
+        for (String trace : sortedTraces.keySet()) {
+            if (parsed < maxTraces) {
 //                System.out.println("DEBUG - trace, frequency: " + trace + "," + traces.get(trace) );
                 parsed += traces.get(trace);
                 leastFrequent = traces.get(trace);
@@ -277,7 +276,7 @@ public class LogParser {
         }
 
 //        System.out.println("DEBUG - log size: " + sLog.size());
-        System.out.println("INFO - log parsed at " + percentage*100 + "%");
+        System.out.println("INFO - log parsed at " + percentage * 100 + "%");
 //        System.out.println("DEBUG - to parse: " + maxTraces);
 //        System.out.println("DEBUG - parsed: " + parsed);
 //        System.out.println("DEBUG - min frequency: " + leastFrequent);
@@ -351,7 +350,7 @@ public class LogParser {
 //        events.put(ENDCODE, "autogen-end");
 
         int count = 0;
-        for( tIndex = 0; tIndex < totalTraces; tIndex++ ) {
+        for (tIndex = 0; tIndex < totalTraces; tIndex++) {
             /*  we firstly get all the concept names
              *   and we map them into numbers for fast processing
              */
@@ -359,7 +358,7 @@ public class LogParser {
             trace = log.get(tIndex);
             traceSize = trace.size();
 
-            for( eIndex = 0; eIndex < traceSize; eIndex++ ) {
+            for (eIndex = 0; eIndex < traceSize; eIndex++) {
                 event = trace.get(eIndex);
 //                System.out.println("DEBUG " + count++ + "- lifecycle: " + event.getAttributes().get("lifecycle:transition"));
                 label = xEventClassifier.getClassIdentity(event);
@@ -371,7 +370,7 @@ public class LogParser {
         Collections.sort(orderedLabels);
 
         LID = 1;
-        for( String l : orderedLabels ) {
+        for (String l : orderedLabels) {
             labelsToIDs.put(l, LID);
             events.put(LID, l);
             reverseMap.put(l, LID);
@@ -380,19 +379,19 @@ public class LogParser {
         }
 
 //        this plus one accounts for the artificial end event
-        totalActivities = events.size()+1;
+        totalActivities = events.size() + 1;
 
-        potentialORs = new int[totalActivities*totalActivities];
-        parallelism = new int[totalActivities*totalActivities];
-        dfg = new int[totalActivities*totalActivities];
+        potentialORs = new int[totalActivities * totalActivities];
+        parallelism = new int[totalActivities * totalActivities];
+        dfg = new int[totalActivities * totalActivities];
         activityObserved = new int[totalActivities];
-        exclusiveness = new int[totalActivities*totalActivities];
+        exclusiveness = new int[totalActivities * totalActivities];
 //        this minus one is to ensure we do not go out bound on the array
-        endEvent = totalActivities-1;
+        endEvent = totalActivities - 1;
         events.put(endEvent, "autogen-end");
 
 // reminder: matrix[i][j] = array[i*size + j];
-        for(int i = 0; i < totalActivities; i++) {
+        for (int i = 0; i < totalActivities; i++) {
             activityObserved[i] = 0;
             for (int j = 0; j < totalActivities; j++) {
                 dfg[i * totalActivities + j] = 0;
@@ -406,7 +405,7 @@ public class LogParser {
         startEvents = 0;
         completeEvents = 0;
         totalConcurrencies = 0;
-        for( tIndex = 0; tIndex < totalTraces; tIndex++ ) {
+        for (tIndex = 0; tIndex < totalTraces; tIndex++) {
             /* we convert each trace in the log into a string
              *  each string will be a sequence of "::x" terminated with "::", where:
              *  '::' is a separator
@@ -422,7 +421,7 @@ public class LogParser {
             executing = new HashSet<>();
             executed = new HashSet<>();
             executed.add(STARTCODE);
-            for( eIndex = 0; eIndex < traceSize; eIndex++ ) {
+            for (eIndex = 0; eIndex < traceSize; eIndex++) {
                 totalEvents++;
                 event = trace.get(eIndex);
                 label = xEventClassifier.getClassIdentity(event);
@@ -430,48 +429,48 @@ public class LogParser {
 
 //                System.out.println("DEBUG " + count++ + "- lifecycle: " + event.getAttributes().get("lifecycle:transition"));
 
-                if(event.getAttributes().get("lifecycle:transition").toString().equalsIgnoreCase("START")) {
+                if (event.getAttributes().get("lifecycle:transition").toString().equalsIgnoreCase("START")) {
                     startEvents++;
-                    for(int e : executing) {
-                        if( parallelism[e*totalActivities + LID] == 0 ) totalConcurrencies+=2;
-                        parallelism[e*totalActivities + LID]++;
-                        parallelism[LID*totalActivities + e]++;
+                    for (int e : executing) {
+                        if (parallelism[e * totalActivities + LID] == 0) totalConcurrencies += 2;
+                        parallelism[e * totalActivities + LID]++;
+                        parallelism[LID * totalActivities + e]++;
                     }
                     executing.add(LID);
 //                    dfg[lastComplete*totalActivities + LID]++;
                     executed.add(LID);
                 }
 
-                if(event.getAttributes().get("lifecycle:transition").toString().equalsIgnoreCase("COMPLETE")) {
+                if (event.getAttributes().get("lifecycle:transition").toString().equalsIgnoreCase("COMPLETE")) {
                     completeEvents++;
-                    if( executing.contains(LID) ) executing.remove(LID);
+                    if (executing.contains(LID)) executing.remove(LID);
 //                    else dfg[lastComplete*totalActivities + LID]++;
-                    dfg[lastComplete*totalActivities + LID]++;
+                    dfg[lastComplete * totalActivities + LID]++;
                     lastComplete = LID;
                     activityObserved[LID]++;
                     sTrace += ":" + labelsToIDs.get(label).toString() + ":";
                     executed.add(LID);
                 }
             }
-            dfg[lastComplete*totalActivities + endEvent]++;
+            dfg[lastComplete * totalActivities + endEvent]++;
             sTrace += ":" + endEvent + "::";
             executed.add(endEvent);
 
-            for(int a=0; a < totalActivities; a++) {
-                if(!executed.contains(a)) {
-                    for(int x : executed) {
-                        exclusiveness[x*totalActivities + a]++;
-                        exclusiveness[a*totalActivities + x]++;
+            for (int a = 0; a < totalActivities; a++) {
+                if (!executed.contains(a)) {
+                    for (int x : executed) {
+                        exclusiveness[x * totalActivities + a]++;
+                        exclusiveness[a * totalActivities + x]++;
                     }
                 }
             }
 
             traceLength = totalEvents - oldTotalEvents;
-            if( longestTrace < traceLength ) longestTrace = traceLength;
-            if( shortestTrace > traceLength ) shortestTrace = traceLength;
+            if (longestTrace < traceLength) longestTrace = traceLength;
+            if (shortestTrace > traceLength) shortestTrace = traceLength;
 
-            if( !traces.containsKey(sTrace) ) traces.put(sTrace, 0);
-            traces.put(sTrace, traces.get(sTrace)+1);
+            if (!traces.containsKey(sTrace)) traces.put(sTrace, 0);
+            traces.put(sTrace, traces.get(sTrace) + 1);
         }
 
         System.out.println("LOGP - total events parsed: " + totalEvents);
@@ -479,33 +478,33 @@ public class LogParser {
         System.out.println("LOGP - complete events parsed: " + completeEvents);
 //        System.out.println("LOGP - total concurrencies identified: " + totalConcurrencies);
 
-        System.out.println("LOGP - total distinct events: " + (events.size() - 2) );
-        System.out.println("LOGP - total distinct traces: " + traces.size() );
+        System.out.println("LOGP - total distinct events: " + (events.size() - 2));
+        System.out.println("LOGP - total distinct traces: " + traces.size());
 
 //        for( String t : traces.keySet() ) System.out.println("DEBUG - ["+ traces.get(t) +"] trace: " + t);
 
 //        System.out.println("DEBUG - final mapping:");
 //        for( int code : events.keySet() ) System.out.println("DEBUG - " + code + " = " + events.get(code));
 
-        if( Math.abs(startEvents - completeEvents) < ((double)totalEvents*0.50) ) {
+        if (Math.abs(startEvents - completeEvents) < ((double) totalEvents * 0.50)) {
             System.out.println("DEBUG - generating complex log");
             sLog = new ComplexLog(traces, events, log);
-            ((ComplexLog)sLog).setDFG(dfg);
-            ((ComplexLog)sLog).setConcurrencyMatrix(parallelism);
+            ((ComplexLog) sLog).setDFG(dfg);
+            ((ComplexLog) sLog).setConcurrencyMatrix(parallelism);
             sLog.setExclusiveness(exclusiveness);
-            ((ComplexLog)sLog).setActivityObserved(activityObserved);
-            ((ComplexLog)sLog).computePercentages();
+            ((ComplexLog) sLog).setActivityObserved(activityObserved);
+            ((ComplexLog) sLog).computePercentages();
 
-            for(int i=0; i<totalActivities; i++)
-                for(int j=0; j<i; j++) {
-                    if(exclusiveness[i*totalActivities + j] != 0 && parallelism[i*totalActivities + j] != 0) {
-                        potentialORs[i*totalActivities + j]++;
-                        potentialORs[j*totalActivities + i]++;
+            for (int i = 0; i < totalActivities; i++)
+                for (int j = 0; j < i; j++) {
+                    if (exclusiveness[i * totalActivities + j] != 0 && parallelism[i * totalActivities + j] != 0) {
+                        potentialORs[i * totalActivities + j]++;
+                        potentialORs[j * totalActivities + i]++;
 //                        System.out.println("DEBUG - potential OR (" + exclusiveness[i*totalActivities + j] + "," + parallelism[i*totalActivities + j] +") " + "relation: " + events.get(i) + " - "+ i + " and " + events.get(j) + " - "+ j);
                     }
-              }
+                }
 
-            ((ComplexLog)sLog).setPotentialORs(potentialORs);
+            ((ComplexLog) sLog).setPotentialORs(potentialORs);
         } else {
             sLog = new SimpleLog(traces, events, log);
             sLog.setExclusiveness(exclusiveness);
