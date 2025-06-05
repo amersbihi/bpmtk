@@ -66,12 +66,13 @@ public class LogParser {
         try {
             reader = new BufferedReader(new FileReader(path));
 
-            while (reader.ready()) {
+            while( reader.ready() )
+            {
                 trace = reader.readLine();
                 tokenizer = new StringTokenizer(trace, "::");
                 tokenizer.nextToken();
 
-                while (tokenizer.hasMoreTokens()) {
+                while( tokenizer.hasMoreTokens() ) {
                     event = tokenizer.nextToken();
                     labels.add(event);
                 }
@@ -92,19 +93,20 @@ public class LogParser {
 
             reader = new BufferedReader(new FileReader(path));
 
-            while (reader.ready()) {
+            while( reader.ready() )
+            {
                 trace = reader.readLine();
                 tokenizer = new StringTokenizer(trace, "::");
                 frequency = Integer.valueOf(tokenizer.nextToken());
 
                 strace = "::" + STARTCODE + "::";
-                while (tokenizer.hasMoreTokens()) {
+                while( tokenizer.hasMoreTokens() ) {
                     event = tokenizer.nextToken();
                     strace += (labelsToIDs.get(event) + "::");
                 }
                 strace += ENDCODE + "::";
 
-                if (!traces.containsKey(strace)) traces.put(strace, frequency);
+                if(!traces.containsKey(strace))  traces.put(strace, frequency);
                 else traces.put(strace, traces.get(strace) + frequency);
             }
 
@@ -115,7 +117,7 @@ public class LogParser {
             log.setStartcode(STARTCODE);
             log.setEndcode(ENDCODE);
 
-        } catch (IOException ioe) {
+        } catch ( IOException ioe ) {
             System.out.println("ERROR - something went wrong while reading the log file: " + path);
             return null;
         }
@@ -182,8 +184,7 @@ public class LogParser {
         orderedLabels = new ArrayList<>(labels);
         Collections.sort(orderedLabels);
 
-        LID = 2;
-        labelsToIDs.put("-", LID);
+        LID = 1;
         for (String l : orderedLabels) {
             labelsToIDs.put(l, LID);
             events.put(LID, l);

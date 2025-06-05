@@ -32,6 +32,7 @@ import org.processmining.plugins.inductiveminer2.withoutlog.variants.MiningParam
 public class IMdProxy {
 
     public static boolean debug = false;
+    private EfficientTree tree;
 
     public BPMNDiagram discoverFromSDFG(SimpleDirectlyFollowGraph sdfg) throws UnknownTreeNodeException, ReductionFailedException {
         AcceptingPetriNet petrinet = DFG2ModelWithIMd(sdfg);
