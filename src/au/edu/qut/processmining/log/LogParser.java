@@ -165,7 +165,6 @@ public class LogParser {
         events.put(STARTCODE, "autogen-start");
         events.put(ENDCODE, "autogen-end");
 
-
         for (tIndex = 0; tIndex < totalTraces; tIndex++) {
             /*  we firstly get all the concept names
              *   and we map them into numbers for fast processing

@@ -32,7 +32,6 @@ import org.processmining.plugins.inductiveminer2.withoutlog.variants.MiningParam
 public class IMdProxy {
 
     public static boolean debug = false;
-    private EfficientTree tree;
 
     public BPMNDiagram discoverFromSDFG(SimpleDirectlyFollowGraph sdfg) throws UnknownTreeNodeException, ReductionFailedException {
         AcceptingPetriNet petrinet = DFG2ModelWithIMd(sdfg);
@@ -42,15 +41,14 @@ public class IMdProxy {
         return updateLabels(sdfg.getSimpleLog().getEvents(), bpmn, sdfg.size() - 1);
     }
 
-    public EfficientTree discoverTreeFromSDFG(SimpleDirectlyFollowGraph sdfg) throws Exception {
+    public EfficientTree discoverTreeFromSDFG(SimpleDirectlyFollowGraph sdfg) {
         SimpleLog slog = sdfg.getSimpleLog();
         XLog xlog = slog.getXLog();
         MiningParametersIM parameters = new MiningParametersIM();
         IMLog imlog = parameters.getIMLog(xlog);
         Canceller canceller = () -> false;
 
-        EfficientTree tree = InductiveMiner.mineEfficientTree(imlog, parameters, canceller);
-        return tree;
+        return InductiveMiner.mineEfficientTree(imlog, parameters, canceller);
     }
 
     public AcceptingPetriNet DFG2ModelWithIMd(SimpleDirectlyFollowGraph sdfg)

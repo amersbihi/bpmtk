@@ -231,49 +231,21 @@ public class SubtraceAbstraction extends Abstraction {
         }
     }
 
-    public static SubtraceAbstraction abstractProcessBehaviour(Set<String> strings, int order) {
+    public static SubtraceAbstraction abstractProcessBehaviour(Set<String> strings, int order, Map<Character, Integer> charToIDs) {
         SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
 
-        Set<String> prefixes = new HashSet<>();
-        Set<String> suffixes = new HashSet<>();
-        Set<String> finalTraces = new HashSet<>();
-
-        for (String s : strings) {
-            if (s.equals("+-")) {
-                Subtrace empty = new Subtrace(order);
-                empty.add(Subtrace.INIT);
-                abstraction.addSubtrace(empty, 1);
-                continue;
-            } else if (s.startsWith("+") && s.endsWith("-")) {
-                String stripped = s.substring(1, s.length() - 1);
-                prefixes.add(stripped);
-                suffixes.add(stripped);
-            } else if (s.startsWith("+")) {
-                prefixes.add(s.substring(1));
-            } else if (s.endsWith("-")) {
-                suffixes.add(s.substring(0, s.length() - 1));
-            } else {
-                finalTraces.add(s);
+        for (String trace : strings) {
+            if(trace.startsWith("+")){
+                trace = "-" + trace.substring(1);
             }
-        }
-
-        for (String prefix : prefixes) {
-            if (suffixes.contains(prefix)) {
-                finalTraces.add(prefix);
-            }
-        }
-
-        for (String trace : finalTraces) {
             Subtrace subtrace = new Subtrace(order);
 
             for (char c : trace.toCharArray()) {
-                int symbol = MarkovianAutomatonAbstraction.charToInt.getOrDefault(c, -1);
-                if (symbol != -1) {
-                    subtrace.add(symbol);
-                }
+                int id = charToIDs.get(c);
+                subtrace.add(id);
             }
 
-            if (suffixes.contains(trace)) {
+            if (trace.endsWith("-")){
                 subtrace.add(Subtrace.INIT);
             }
 

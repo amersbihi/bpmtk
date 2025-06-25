@@ -3,7 +3,6 @@ package au.edu.unimelb.processmining.optimization;
 import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
-import dk.brics.automaton.Automaton;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
 
@@ -38,7 +37,7 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
     }
 
     @Override
-    public Object[] call() throws Exception {
+    public Object[] call() {
         SubtraceAbstraction staProcess;
         Object[] results = new Object[6];
 
@@ -46,14 +45,12 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
 
         try {
             if (tree != null) {
-                // 1. Initialize mapping
-                MarkovianAutomatonAbstraction.initializeLabelMapping(tree);
+                // 1. Compute Mk-automaton
+                MarkovianAutomatonAbstraction abstraction = new MarkovianAutomatonAbstraction(tree, order, slog);
 
-                // 2. Compute Mk-automaton
-                Automaton mkAutomaton = MarkovianAutomatonAbstraction.computeMk(tree, tree.getRoot(), order);
+                // 2. Convert automaton to SubtraceAbstraction using internal label mapping
+                staProcess = SubtraceAbstraction.abstractProcessBehaviour(abstraction.getAutomaton().getFiniteStrings(), order, abstraction.getCharToIDs());
 
-                // 3. Convert automaton to SubtraceAbstraction using internal label mapping
-                staProcess = SubtraceAbstraction.abstractProcessBehaviour(mkAutomaton.getFiniteStrings(), order);
             } else if (bpmn != null) {
                 staProcess = SubtraceAbstraction.abstractProcessBehaviour(this.bpmn, order, slog);
             } else {

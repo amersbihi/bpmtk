@@ -3,6 +3,7 @@ package au.edu.unimelb.processmining.accuracy.abstraction;
 import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.unimelb.processmining.accuracy.abstraction.markovian.MarkovLabel;
 import au.edu.unimelb.processmining.accuracy.abstraction.markovian.MarkovAbstraction;
+import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.set.SetAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.set.SetLabel;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.Subtrace;
@@ -133,27 +134,32 @@ public class LogAbstraction {
         SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
         Map<String, Integer> traces = log.getTraces();
 
+        StringTokenizer trace;
+        int traceFrequency;
+
+        int event;
+        Subtrace subtrace;
+
         for (String t : traces.keySet()) {
-            StringTokenizer trace = new StringTokenizer(t, "::");
-            int traceFrequency = traces.get(t);
+            trace = new StringTokenizer(t, "::");
+            traceFrequency = traces.get(t);
 
-            int event;
-            Subtrace subtrace = new Subtrace(order);
+            // Consuming the start event (always 0)
+            trace.nextToken();
+            subtrace = new Subtrace(order);
 
-            while (trace.hasMoreTokens()) {
-                event = Integer.parseInt(trace.nextToken());
+            // Add artificial marker right after START
+            subtrace.add(MarkovianAutomatonAbstraction.artificialMarker);
+            abstraction.addSubtrace(new Subtrace(subtrace), traceFrequency);
 
-                // Replace start (0) and end (-1) with 1
-                if (event == 0 || event == -1) {
-                    subtrace.add(1);
-                } else {
-                    subtrace.add(event);
-                }
+            // Read trace events until the final artificial event (-1)
+            while (trace.hasMoreTokens() && ((event = Integer.valueOf(trace.nextToken())) != -1)) {
                 subtrace.add(event);
-
                 abstraction.addSubtrace(new Subtrace(subtrace), traceFrequency);
             }
 
+            // Add final INIT marker and artifical end marker
+            subtrace.add(MarkovianAutomatonAbstraction.artificialMarker);
             subtrace.add(INIT);
             abstraction.addSubtrace(subtrace, traceFrequency);
         }

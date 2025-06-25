@@ -37,6 +37,11 @@ public class IteratedLocalSearch implements Metaheuristics {
     private PrintWriter writer;
     private int perturbations;
 
+    private int noImprovementCounter = 0;
+    private int maxIterationsBeforeRaise = 5;
+
+    private int maxK = 5;
+
     private long MineTime;
     private long ModifyTime;
     private long ComputeTime;
@@ -299,9 +304,37 @@ public class IteratedLocalSearch implements Metaheuristics {
                     hits.add(iterations);
                     bestSDFG = currentSDFG;
                     bestTree = currentTree;
+                } else {
+                    noImprovementCounter++;
                 }
 
                 iTime = System.currentTimeMillis() - iTime;
+
+                /*if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
+                    order++;
+                    System.out.println("INFO - No improvement for " + noImprovementCounter + " iterations, increasing k to " + order);
+
+                    // Recompute Log abstraction at new k
+                    staLog = LogAbstraction.subtraceTree(slog, order);
+
+                    // Re-evaluate best tree at new k
+                    MarkovianBasedEvaluator reevaluateBest = new MarkovianBasedEvaluator(staLog, slog, minerProxy, bestTree, order);
+                    ExecutorService reevaluateService = Executors.newSingleThreadExecutor();
+                    Future<Object[]> reevaluateResult = reevaluateService.submit(reevaluateBest);
+                    Object[] newResult = reevaluateResult.get(timeout, TimeUnit.MILLISECONDS);
+                    reevaluateService.shutdownNow();
+
+                    currentAccuracy[0] = (Double) newResult[0];
+                    currentAccuracy[1] = (Double) newResult[1];
+                    currentAccuracy[2] = (Double) newResult[2];
+                    staProcess = (SubtraceAbstraction) newResult[3];
+                    currentTree = (EfficientTree) newResult[4];
+                    ComputeTime += (long) newResult[5];
+                    currentSDFG = bestSDFG;
+
+                    noImprovementCounter = 0;
+                }*/
+
                 if (export)
                     AutomatedProcessDiscoveryOptimizer.exportTree(currentTree, ".\\ils_" + modelName + "_" + iterations + ".ptml");
                 writer.println(iterations + "," + currentAccuracy[0] + "," + currentAccuracy[1] + "," + currentAccuracy[2] + "," + iTime);
@@ -375,9 +408,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                         continue;
                     }
 
-
                     evalThread = new MarkovianBasedEvaluator(staLog, slog, minerProxy, tmpTree, order);
-
                     evalResult = multiThreadService.submit(evalThread);
 
                     neighboursEvaluations.put(neighbourSDFG, evalResult);
@@ -514,6 +545,7 @@ public class IteratedLocalSearch implements Metaheuristics {
 
             // Submit evaluation thread
             evalResult = executor.submit(markovianBasedEvaluator);
+            // sleep(10000000);
             result = evalResult.get(minerProxy.getTimeout(), TimeUnit.MILLISECONDS);
 
             currentAccuracy[0] = (Double) result[0];

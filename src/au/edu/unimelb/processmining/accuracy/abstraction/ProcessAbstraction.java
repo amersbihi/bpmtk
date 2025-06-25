@@ -76,8 +76,8 @@ public class ProcessAbstraction {
             }
         }
 
-        if( (double)i/(double)MAXL > 1 )
-            System.out.println("WARNING - done at " + (double)i/(double)MAXL);
+        // if( (double)i/(double)MAXL > 1 )
+            //System.out.println("WARNING - done at " + (double)i/(double)MAXL);
 
 //        abstraction.powerup();
         return abstraction;
@@ -106,8 +106,8 @@ public class ProcessAbstraction {
             if(abstraction.getEdges().size() > MAXE) break;
         }
 
-        if( (double)abstraction.getEdges().size()/(double)MAXE > 1 )
-            System.out.println("WARNING - done at " + (double)abstraction.getEdges().size()/(double)MAXE);
+        // if( (double)abstraction.getEdges().size()/(double)MAXE > 1 )
+            // System.out.println("WARNING - done at " + (double)abstraction.getEdges().size()/(double)MAXE);
 
         return abstraction;
     }
@@ -171,7 +171,7 @@ public class ProcessAbstraction {
             }
         }
 
-        if( (double)i/(double)MAXL > 1 ) System.out.println("WARNING - done at " + (double)i/(double)MAXL);
+        // if( (double)i/(double)MAXL > 1 ) System.out.println("WARNING - done at " + (double)i/(double)MAXL);
     }
 
 

@@ -29,7 +29,7 @@ import java.util.*;
 
 public class MkAbstractionTest {
 
-    private static final int K = 5;
+    private static final int K = 3;
     private static Map<String, Integer> label2id = new HashMap<>();
     private static Map<Integer, String> id2label = new HashMap<>();
 
@@ -57,8 +57,8 @@ public class MkAbstractionTest {
                 EfficientTree tree = ProcessTree2EfficientTree.convert(loadProcessTree(ptmlFile));
 
                 // Compute new Mk-abstraction
-                Automaton mkAutomaton = MarkovianAutomatonAbstraction.computeMk(tree, tree.getRoot(), K);
-                SubtraceAbstraction myAbstraction = mkAutomatonToSubtraceAbstraction(mkAutomaton.getFiniteStrings(), K);
+                MarkovianAutomatonAbstraction mk = new MarkovianAutomatonAbstraction(tree, K);
+                SubtraceAbstraction myAbstraction = mkAutomatonToSubtraceAbstraction(mk.getAutomaton().getFiniteStrings(), K);
 
                 // Compare the abstractions
                 List<String> onlyinMy = myAbstraction.computeDifferences(reference);
@@ -188,7 +188,7 @@ public class MkAbstractionTest {
         return result;
     }
 
-    private static SimpleLog createDummySimpleLog(Petrinet net) {
+    public static SimpleLog createDummySimpleLog(Petrinet net) {
         Map<String, Integer> traces = new HashMap<>();
         int id = 1;
 

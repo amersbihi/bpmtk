@@ -11,6 +11,8 @@ public class Subtrace implements Comparable {
     protected double frequency;
 
     public final static int INIT = 0;
+    public static final int MARK = -2; // artificial '-'
+
     private final static int START = 0;
 
     public Subtrace(int order) {
