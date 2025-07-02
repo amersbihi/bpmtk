@@ -50,7 +50,6 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
 
                 // 2. Convert automaton to SubtraceAbstraction using internal label mapping
                 staProcess = SubtraceAbstraction.abstractProcessBehaviour(abstraction.getAutomaton().getFiniteStrings(), order, abstraction.getCharToIDs());
-
             } else if (bpmn != null) {
                 staProcess = SubtraceAbstraction.abstractProcessBehaviour(this.bpmn, order, slog);
             } else {

@@ -15,7 +15,7 @@ import java.util.Random;
 
 public class MinerProxy {
 
-    public enum MinerTAG {SM, IM, FO, SHM, SMTree, IMTree, FOTree}
+    public enum MinerTAG {SM, IM, FO, SHM}
 
     private MinerTAG tag;
     private SimpleLog slog;
@@ -65,7 +65,6 @@ public class MinerProxy {
 
         switch (tag) {
             case SM:
-            case SMTree:
                 sm = new SplitMiner();
                 timeout = 2500;
 
@@ -89,7 +88,6 @@ public class MinerProxy {
                 break;
 
             case FO:
-            case FOTree:
                 System.out.println("DEBUG - Fodina Miner selected.");
                 fodina = new Fodina();
                 timeout = 4000;
@@ -118,10 +116,9 @@ public class MinerProxy {
                 break;
 
             case IM:
-            case IMTree:
 //                System.out.println("DEBUG - IM ready to go");
                 inductive = new IMdProxy();
-                timeout = 20000;
+                timeout = 100000;
                 params = new ArrayList<>();
                 for (int i = 2; i < 6; i++)
                     for (int j = 1; j < 4; j++)
@@ -152,7 +149,6 @@ public class MinerProxy {
 
         switch (tag) {
             case SM:
-            case SMTree:
 //                if( perturbParams.isEmpty() ) return null;
                 param = perturbParams.remove(0);
                 perturbParams.add(param);
@@ -163,7 +159,6 @@ public class MinerProxy {
                 sdfgo.setParallelisms(dfgp.getParallelisms());
                 return sdfgo;
             case FO:
-            case FOTree:
                 param = perturbParams.remove(0);
                 perturbParams.add(param);
 
@@ -174,7 +169,6 @@ public class MinerProxy {
                 return fodina.discoverSDFG(slog, fodinaSettings);
 
             case IM:
-            case IMTree:
                 param = perturbParams.remove(0);
                 perturbParams.add(param);
 
@@ -194,14 +188,12 @@ public class MinerProxy {
 
         switch (tag) {
             case SM:
-            case SMTree:
                 if (restartParams.isEmpty()) return null;
                 param = restartParams.remove(0);
                 dfgp = new DirectlyFollowGraphPlus(slog, param.getParam(0), param.getParam(1), DFGPUIResult.FilterType.WTH, false);
                 dfgp.buildDFGP();
                 return new SimpleDirectlyFollowGraph(dfgp, false);
             case FO:
-            case FOTree:
                 while (true) {
                     if (restartParams.isEmpty()) return null;
                     param = restartParams.remove(0);
@@ -236,7 +228,6 @@ public class MinerProxy {
 */
                 }
             case IM:
-            case IMTree:
 //                System.out.println("DEBUG - time for IM to shine");
                 if (restartParams.isEmpty()) return null;
                 param = restartParams.remove(0);
@@ -264,11 +255,7 @@ public class MinerProxy {
 
     public EfficientTree getTree(SimpleDirectlyFollowGraph sdfg) throws Exception {
         switch (tag) {
-            /*case SMTree:
-                return sm.discoverTreeFromSDFG(sdfg);
-            case FOTree:
-                return fodina.discoverTreeFromSDFG(sdfg);*/
-            case IMTree:
+            case IM:
                 return inductive.discoverTreeFromSDFG(sdfg);
             default:
                 return null;

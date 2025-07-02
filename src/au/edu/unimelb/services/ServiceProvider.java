@@ -78,10 +78,10 @@ public class ServiceProvider {
         try {
             System.out.println("TESTCODE - " + args[0]);
             TEST_CODE code = TEST_CODE.valueOf(args[0]);
-            String[] fargs = new String[args.length-1];
-            for(int i=1; i<args.length; i++) fargs[i-1] = args[i];
+            String[] fargs = new String[args.length - 1];
+            for (int i = 1; i < args.length; i++) fargs[i - 1] = args[i];
 
-            switch(code) {
+            switch (code) {
 //                case AVGD:
 //                    testProvider.averageDistanceLogComplexity(fargs[0]);
 //                break;
@@ -91,9 +91,9 @@ public class ServiceProvider {
                 case TCC:
                     testProvider.timeConstraintsChecker(fargs);
                     break;
-    //            case ISL:
-    //                testProvider.importSimpleLog8020(fargs);
-    //                break;
+                //            case ISL:
+                //                testProvider.importSimpleLog8020(fargs);
+                //                break;
                 case MAP:
                     testProvider.MarkovianPrecisionService(fargs);
                     break;
@@ -106,9 +106,9 @@ public class ServiceProvider {
                 case SMD:
                     testProvider.SplitMinerService(fargs);
                     break;
-    //            case SMDX:
-    //                testProvider.SplitMinerServiceX(fargs);
-    //                break;
+                //            case SMDX:
+                //                testProvider.SplitMinerServiceX(fargs);
+                //                break;
                 case AOM:
                     Testing.accuracyOnModelsSet(MarkovianAccuracyCalculator.Abs.valueOf(fargs[0]), MarkovianAccuracyCalculator.Opd.valueOf(fargs[1]), fargs[2], fargs[3], Integer.valueOf(fargs[4]));
                     break;
@@ -163,9 +163,9 @@ public class ServiceProvider {
                 case IMD:
                     testProvider.InductiveMinerService(fargs);
                     break;
-    //            case SMBD:
-    //                Testing.SMBatchDiscovery(fargs);
-    //                break;
+                //            case SMBD:
+                //                Testing.SMBatchDiscovery(fargs);
+                //                break;
                 case SMPN:
 //                    logAnalysis(fargs[0]);
                     testProvider.SplitMinerServicePetrinet(fargs);
@@ -178,11 +178,11 @@ public class ServiceProvider {
                     break;
             }
 
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             int code = Integer.valueOf(args[0]);
-            String[] fargs = new String[args.length-1];
-            for(int i=1; i<args.length; i++) fargs[i-1] = args[i];
+            String[] fargs = new String[args.length - 1];
+            for (int i = 1; i < args.length; i++) fargs[i - 1] = args[i];
 
             switch (code) {
                 case 1:
@@ -194,7 +194,8 @@ public class ServiceProvider {
                 case 3:
                     testProvider.SIMMinerService(fargs);
                     break;
-                default: return;
+                default:
+                    return;
             }
         }
     }
@@ -204,7 +205,7 @@ public class ServiceProvider {
 
         try {
             log = LogImporter.importFromFile(new XFactoryNaiveImpl(), logPath);
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }
@@ -213,7 +214,7 @@ public class ServiceProvider {
         long etime = System.currentTimeMillis();
         System.out.println("RESULT - " + (new ComplexityCalculator()).logComplexity(slog));
         etime = System.currentTimeMillis() - etime;
-        System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+        System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
     }
 
     private static void logBreaker(String args[]) {
@@ -237,24 +238,24 @@ public class ServiceProvider {
             sublogTraces = totalTraces / sublogs;
 
             traceIndex = 0;
-            for(int i = 1; i<(sublogs+1); i++) {
+            for (int i = 1; i < (sublogs + 1); i++) {
                 tmpLog = new XLogImpl(olog.getAttributes());
 
-                for (; traceIndex < sublogTraces*i; traceIndex++) {
+                for (; traceIndex < sublogTraces * i; traceIndex++) {
                     trace = olog.get(traceIndex);
                     tmpLog.add(trace);
                 }
 
                 LogImporter.exportToFile(logExpPath + "_p" + i + ".xes.gz", tmpLog);
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.out.println("ERROR - no log given in input");
             e.printStackTrace();
         }
 
     }
 
-    private static void timeConstraintsChecker(String[] args){
+    private static void timeConstraintsChecker(String[] args) {
         long etime;
         TimeConstraintsChecker tcc = new TimeConstraintsChecker();
 
@@ -264,18 +265,18 @@ public class ServiceProvider {
         String logPath = args[0];
         String rulesPath = args[1];
 
-        if(args.length == 3) loaded = tcc.loadData(args[2]);
+        if (args.length == 3) loaded = tcc.loadData(args[2]);
 
         updated = tcc.readXLog(logPath);
 //        tcc.print();
 
         etime = System.currentTimeMillis();
-        if(loaded || updated) tcc.checkConstraints(rulesPath);
+        if (loaded || updated) tcc.checkConstraints(rulesPath);
         etime = System.currentTimeMillis() - etime;
-        System.out.println("Querying TIME - " + (double)etime/1000.0 + "s");
+        System.out.println("Querying TIME - " + (double) etime / 1000.0 + "s");
 
 //        tcc.info();
-        if(updated) tcc.saveData(logPath);
+        if (updated) tcc.saveData(logPath);
     }
 
     private static void logAnalysis(String logPath) {
@@ -285,7 +286,7 @@ public class ServiceProvider {
 
         try {
             log = LogImporter.importFromFile(new XFactoryNaiveImpl(), logPath);
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }
@@ -315,34 +316,35 @@ public class ServiceProvider {
         String cfc;
         String struct;
 
-            try {
-                if(modelPath.contains(".pnml")) {
-                    Object o = pnmli.importFile(fakePluginContext, modelPath);
-                    if(o instanceof Object[] && (((Object[])o)[0] instanceof Petrinet) ) net = (Petrinet)((Object[])o)[0];
-                    else {
-                        System.out.println("DEBUG - class: " + o.getClass().getSimpleName());
-                        throw new Exception();
-                    }
+        try {
+            if (modelPath.contains(".pnml")) {
+                Object o = pnmli.importFile(fakePluginContext, modelPath);
+                if (o instanceof Object[] && (((Object[]) o)[0] instanceof Petrinet))
+                    net = (Petrinet) ((Object[]) o)[0];
+                else {
+                    System.out.println("DEBUG - class: " + o.getClass().getSimpleName());
+                    throw new Exception();
+                }
 
-                    Marking initMarking = MarkingDiscoverer.constructInitialMarking(fakePluginContext, net);
-                    Marking finalMarking = MarkingDiscoverer.constructFinalMarking(fakePluginContext, net);
+                Marking initMarking = MarkingDiscoverer.constructInitialMarking(fakePluginContext, net);
+                Marking finalMarking = MarkingDiscoverer.constructFinalMarking(fakePluginContext, net);
 
-                    for(Transition t : net.getTransitions() )
-                        if( t.getLabel().matches("t\\d+") || t.getLabel().contains("tau")) t.setInvisible(true);
+                for (Transition t : net.getTransitions())
+                    if (t.getLabel().matches("t\\d+") || t.getLabel().contains("tau")) t.setInvisible(true);
 
-                    bpmn = PetriNetToBPMNConverter.convert(net, initMarking, finalMarking, false);
-                } else bpmn = bpmnImporter.importBPMNDiagram(modelPath);
+                bpmn = PetriNetToBPMNConverter.convert(net, initMarking, finalMarking, false);
+            } else bpmn = bpmnImporter.importBPMNDiagram(modelPath);
 
-                complexityCalculator.setBPMN(bpmn);
-                size = complexityCalculator.computeSize();
-                cfc = complexityCalculator.computeCFC();
-                struct = complexityCalculator.computeStructuredness();
+            complexityCalculator.setBPMN(bpmn);
+            size = complexityCalculator.computeSize();
+            cfc = complexityCalculator.computeCFC();
+            struct = complexityCalculator.computeStructuredness();
 
-                System.out.println("COMPLEXITY (size, CFC, struct.) - (" + size + "," + cfc + "," + struct + ")");
-            } catch (Exception e) {
-                System.out.println("ERROR - something when wrong with process: " + modelPath);
-                e.printStackTrace();
-            }
+            System.out.println("COMPLEXITY (size, CFC, struct.) - (" + size + "," + cfc + "," + struct + ")");
+        } catch (Exception e) {
+            System.out.println("ERROR - something when wrong with process: " + modelPath);
+            e.printStackTrace();
+        }
     }
 
     public void SIMMinerService(String[] args) {
@@ -354,7 +356,7 @@ public class ServiceProvider {
             XLog log = LogImporter.importFromFile(new XFactoryNaiveImpl(), args[0]);
 
             long etime = System.currentTimeMillis();
-            DirectlyFollowGraphPlus dfgp = new DirectlyFollowGraphPlus(LogParser.getComplexLog(log, new XEventNameClassifier()),eta,epsilon, DFGPUIResult.FilterType.FWG,true);
+            DirectlyFollowGraphPlus dfgp = new DirectlyFollowGraphPlus(LogParser.getComplexLog(log, new XEventNameClassifier()), eta, epsilon, DFGPUIResult.FilterType.FWG, true);
 //            dfgp.buildDFGP();
             dfgp.buildDFGfromComplexLog();
             dfgp.filterWithGuarantees();
@@ -363,7 +365,7 @@ public class ServiceProvider {
             BPMNDiagram output = iMdProxy.discoverFromSDFG(sdfg);
             etime = System.currentTimeMillis() - etime;
 
-            System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
 
             BpmnExportPlugin bpmnExportPlugin = new BpmnExportPlugin();
             UIContext context = new UIContext();
@@ -388,7 +390,7 @@ public class ServiceProvider {
 
         double eta = Double.valueOf(args[2]);
         double epsilon = Double.valueOf(args[3]);
-        boolean parallelismFirst =  Boolean.valueOf(args[4]);
+        boolean parallelismFirst = Boolean.valueOf(args[4]);
         boolean replaceIORs = Boolean.valueOf(args[5]);
         boolean removeLoopActivities = Boolean.valueOf(args[6]);
 //        boolean aux1 = Boolean.valueOf(args[7]);
@@ -400,11 +402,11 @@ public class ServiceProvider {
             SimpleLog cLog = LogParser.getComplexLog(LogImporter.importFromFile(new XFactoryNaiveImpl(), logPath), new XEventNameClassifier());
             DirectlyFollowGraphPlus dfgp = new DirectlyFollowGraphPlus(cLog, eta, epsilon, DFGPUIResult.FilterType.FWG, parallelismFirst);
 
-            if(outputDFG && (cLog instanceof ComplexLog)) {
+            if (outputDFG && (cLog instanceof ComplexLog)) {
                 dfgp.buildDFGfromComplexLog();
                 dfgp.detectLoops();
                 dfgp.detectParallelismsFromComplexLog();
-                if(filter) dfgp.filterWithGuarantees();
+                if (filter) dfgp.filterWithGuarantees();
                 diagram = dfgp.convertIntoBPMNDiagramWithOriginalLabels();
             } else {
                 dfgp.buildDFGP();
@@ -435,7 +437,7 @@ public class ServiceProvider {
 
         double eta = 1.0;
         double epsilon = Double.valueOf(args[2]);
-        boolean parallelismFirst =  true;
+        boolean parallelismFirst = true;
         boolean replaceIORs = false;
         boolean removeLoopActivities = false;
 //        boolean aux1 = Boolean.valueOf(args[7]);
@@ -447,11 +449,11 @@ public class ServiceProvider {
             SimpleLog cLog = LogParser.getComplexLog(LogImporter.importFromFile(new XFactoryNaiveImpl(), logPath), new XEventNameClassifier());
             DirectlyFollowGraphPlus dfgp = new DirectlyFollowGraphPlus(cLog, eta, epsilon, DFGPUIResult.FilterType.FWG, parallelismFirst);
 
-            if(outputDFG && (cLog instanceof ComplexLog)) {
+            if (outputDFG && (cLog instanceof ComplexLog)) {
                 dfgp.buildDFGfromComplexLog();
                 dfgp.detectLoops();
                 dfgp.detectParallelismsFromComplexLog();
-                if(filter) dfgp.filterWithGuarantees();
+                if (filter) dfgp.filterWithGuarantees();
                 diagram = dfgp.convertIntoBPMNDiagramWithOriginalLabels();
             } else {
                 dfgp.buildDFGP();
@@ -484,7 +486,7 @@ public class ServiceProvider {
             BPMNDiagram output = yam.mineBPMNModel(LogParser.getComplexLog(log, xEventClassifier), xEventClassifier, eta, epsilon, DFGPUIResult.FilterType.FWG, Boolean.valueOf(args[2]), replaceIORs, true, SplitMinerUIResult.StructuringTime.NONE);
             etime = System.currentTimeMillis() - etime;
 
-            System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
 
             BpmnExportPlugin bpmnExportPlugin = new BpmnExportPlugin();
             UIContext context = new UIContext();
@@ -515,10 +517,10 @@ public class ServiceProvider {
         try {
             reader = new BufferedReader(new FileReader(file));
 
-            for(int i = 0; i<size1; i++)
+            for (int i = 0; i < size1; i++)
                 best[i] = Double.parseDouble(reader.readLine());
 
-            for(int i = 0; i<size2; i++)
+            for (int i = 0; i < size2; i++)
                 challenger[i] = Double.parseDouble(reader.readLine());
 
             reader.close();
@@ -547,9 +549,9 @@ public class ServiceProvider {
     public void APDO(String logPath, String order, String metaopt, String miner) {
         AutomatedProcessDiscoveryOptimizer optimizer = new AutomatedProcessDiscoveryOptimizer(Integer.valueOf(order), AutomatedProcessDiscoveryOptimizer.MetaOpt.valueOf(metaopt), MinerProxy.MinerTAG.valueOf(miner));
         optimizer.init(logPath);
-        if (MinerProxy.MinerTAG.IM.equals(MinerProxy.MinerTAG.valueOf(miner))){
+        if (!metaopt.contains("Tree")) {
             optimizer.searchOptimalBPMN();
-        } else if (MinerProxy.MinerTAG.IMTree.equals(MinerProxy.MinerTAG.valueOf(miner))){
+        } else {
             optimizer.searchOptimalTree();
         }
     }
@@ -562,7 +564,7 @@ public class ServiceProvider {
         MarkovianAccuracyCalculator calculator = new MarkovianAccuracyCalculator();
         long start = System.currentTimeMillis();
 
-        if( args.length == 5 ) {
+        if (args.length == 5) {
             calculator.accuracy(MarkovianAccuracyCalculator.Abs.valueOf(args[0]), MarkovianAccuracyCalculator.Opd.valueOf(args[1]), args[2], args[3], Integer.valueOf(args[4]));
         } else {
             System.out.println("ERROR - wrong usage.");
@@ -576,7 +578,7 @@ public class ServiceProvider {
         MarkovianAccuracyCalculator calculator = new MarkovianAccuracyCalculator();
         long start = System.currentTimeMillis();
 
-        if( args.length == 5 ) {
+        if (args.length == 5) {
             calculator.precision(MarkovianAccuracyCalculator.Abs.valueOf(args[0]), MarkovianAccuracyCalculator.Opd.valueOf(args[1]), args[2], args[3], Integer.valueOf(args[4]));
         } else {
             System.out.println("ERROR - wrong usage.");
@@ -590,7 +592,7 @@ public class ServiceProvider {
         MarkovianAccuracyCalculator calculator = new MarkovianAccuracyCalculator();
         long start = System.currentTimeMillis();
 
-        if( args.length == 5 ) {
+        if (args.length == 5) {
             calculator.fitness(MarkovianAccuracyCalculator.Abs.valueOf(args[0]), MarkovianAccuracyCalculator.Opd.valueOf(args[1]), args[2], args[3], Integer.valueOf(args[4]));
         } else {
             System.out.println("ERROR - wrong usage.");
@@ -608,13 +610,13 @@ public class ServiceProvider {
             long etime = System.currentTimeMillis();
             DirectlyFollowGraphPlus dfgp = new DirectlyFollowGraphPlus(slog, eta, 0.0, DFGPUIResult.FilterType.FWG, false);
             dfgp.buildDirectlyFollowsGraph();
-            if(eta > 0) dfgp.filterWithGuarantees();
+            if (eta > 0) dfgp.filterWithGuarantees();
 
             etime = System.currentTimeMillis() - etime;
 
             dfgp.printEdges(true);
 
-            System.out.println("eTIME (excluding printing) - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME (excluding printing) - " + (double) etime / 1000.0 + "s");
 
             return;
         } catch (Throwable e) {
@@ -628,7 +630,7 @@ public class ServiceProvider {
         try {
             double eta = Double.valueOf(args[0]);
             double epsilon = Double.valueOf(args[1]);
-            boolean parallelismFirst =  Boolean.valueOf(args[2]);
+            boolean parallelismFirst = Boolean.valueOf(args[2]);
             boolean replaceIORs = Boolean.valueOf(args[3]);
             boolean removeLoopActivityMarkers = Boolean.valueOf(args[4]);
 
@@ -638,7 +640,7 @@ public class ServiceProvider {
             BPMNDiagram output = yam.mineBPMNModel(log, new XEventNameClassifier(), eta, epsilon, DFGPUIResult.FilterType.FWG, parallelismFirst, replaceIORs, removeLoopActivityMarkers, SplitMinerUIResult.StructuringTime.NONE);
             etime = System.currentTimeMillis() - etime;
 
-            System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
 
             BpmnExportPlugin bpmnExportPlugin = new BpmnExportPlugin();
             UIContext context = new UIContext();
@@ -665,7 +667,7 @@ public class ServiceProvider {
         try {
             double eta = Double.valueOf(args[0]);
             double epsilon = Double.valueOf(args[1]);
-            boolean parallelismFirst =  Boolean.valueOf(args[2]);
+            boolean parallelismFirst = Boolean.valueOf(args[2]);
             boolean replaceIORs = Boolean.valueOf(args[3]);
             boolean removeLoopActivities = Boolean.valueOf(args[4]);
 
@@ -675,7 +677,7 @@ public class ServiceProvider {
             BPMNDiagram output = yam.mineBPMNModel(log, new XEventNameClassifier(), eta, epsilon, DFGPUIResult.FilterType.FWG, parallelismFirst, replaceIORs, removeLoopActivities, SplitMinerUIResult.StructuringTime.NONE);
             etime = System.currentTimeMillis() - etime;
 
-            System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
             petrinet = BPMNToPetriNetConverter.convert(output);
             exporter.exportPetriNetToPNMLFile(new FakePluginContext(), (Petrinet) petrinet[0], new File(args[4] + ".pnml"));
         } catch (Throwable e) {
@@ -704,7 +706,7 @@ public class ServiceProvider {
             BPMNDiagram output = fodina.discoverBPMNDiagram(LogParser.getSimpleLog(log, new XEventNameClassifier()), settings);
             etime = System.currentTimeMillis() - etime;
 
-            System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
 
             BpmnExportPlugin bpmnExportPlugin = new BpmnExportPlugin();
             UIContext context = new UIContext();
@@ -724,14 +726,14 @@ public class ServiceProvider {
             XLog log = LogImporter.importFromFile(new XFactoryNaiveImpl(), args[0]);
 
             long etime = System.currentTimeMillis();
-            DirectlyFollowGraphPlus dfgp = new DirectlyFollowGraphPlus(LogParser.getSimpleLog(log, new XEventNameClassifier()),0.0,0.0, DFGPUIResult.FilterType.NOF,true);
+            DirectlyFollowGraphPlus dfgp = new DirectlyFollowGraphPlus(LogParser.getSimpleLog(log, new XEventNameClassifier()), 0.0, 0.0, DFGPUIResult.FilterType.NOF, true);
 //            dfgp.buildDFGP();
             dfgp.buildDirectlyFollowsGraph();
             SimpleDirectlyFollowGraph sdfg = new SimpleDirectlyFollowGraph(dfgp, false);
             BPMNDiagram output = iMdProxy.discoverFromSDFG(sdfg);
             etime = System.currentTimeMillis() - etime;
 
-            System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
 
             BpmnExportPlugin bpmnExportPlugin = new BpmnExportPlugin();
             UIContext context = new UIContext();
@@ -760,12 +762,12 @@ public class ServiceProvider {
             BPMNDiagram output = yam.mineBPMNModel(slog, classifier, eta, epsilon, DFGPUIResult.FilterType.FWG, Boolean.valueOf(args[2]), replaceIORs, false, SplitMinerUIResult.StructuringTime.NONE);
             etime = System.currentTimeMillis() - etime;
 
-            System.out.println("eTIME - " + (double)etime/1000.0 + "s");
+            System.out.println("eTIME - " + (double) etime / 1000.0 + "s");
 
             BpmnExportPlugin bpmnExportPlugin = new BpmnExportPlugin();
             UIContext context = new UIContext();
             UIPluginContext uiPluginContext = context.getMainPluginContext();
-            String modelName = args[5]+"e"+epsilon+"-n"+eta+"-"+args[2].charAt(0)+"-"+Double.valueOf(args[4])+".bpmn";
+            String modelName = args[5] + "e" + epsilon + "-n" + eta + "-" + args[2].charAt(0) + "-" + Double.valueOf(args[4]) + ".bpmn";
             bpmnExportPlugin.export(uiPluginContext, output, new File(modelName));
 
 
@@ -814,12 +816,12 @@ public class ServiceProvider {
 
             reader.readLine(); // space between the size and the first series
 
-            for(int i = 0; i<size; i++)
+            for (int i = 0; i < size; i++)
                 series1[i] = Double.parseDouble(reader.readLine());
 
             reader.readLine(); // space between the two series
 
-            for(int i = 0; i<size; i++)
+            for (int i = 0; i < size; i++)
                 series2[i] = Double.parseDouble(reader.readLine());
 
             reader.close();
@@ -834,21 +836,21 @@ public class ServiceProvider {
         int count = 0;
         int i, j;
 
-        i=0;
-        while( i < size ) {
-            j = i+1;
-            while( j < size ) {
+        i = 0;
+        while (i < size) {
+            j = i + 1;
+            while (j < size) {
                 j++;
-                if( series1[i] > series1[j] && series2[i] > series2[j] ) concordant++;
-                else if( series1[i] < series1[j] && series2[i] < series2[j] ) concordant++;
-                else if( series1[i] == series1[j] && series2[i] == series2[j] ) concordant++;
+                if (series1[i] > series1[j] && series2[i] > series2[j]) concordant++;
+                else if (series1[i] < series1[j] && series2[i] < series2[j]) concordant++;
+                else if (series1[i] == series1[j] && series2[i] == series2[j]) concordant++;
                 else discordant++;
                 count++;
             }
             i++;
         }
 
-        kendall = (double)(concordant - discordant)/(double)count;
+        kendall = (double) (concordant - discordant) / (double) count;
         System.out.println("RESULT - kendall test value: " + kendall);
     }
 

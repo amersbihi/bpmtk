@@ -49,11 +49,16 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.deckfour.xes.classification.XEventClassifier;
 import org.deckfour.xes.model.XLog;
 
+import org.processmining.framework.packages.PackageManager;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
 import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.*;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
+import org.processmining.plugins.inductiveminer2.logs.IMLog;
+import org.processmining.plugins.inductiveminer2.mining.InductiveMiner;
+import org.processmining.plugins.inductiveminer2.variants.MiningParametersIM;
 
 import java.util.*;
 
@@ -182,6 +187,16 @@ public class SplitMiner {
         transformDFGPintoBPMN();
         if (structuringTime == SplitMinerUIResult.StructuringTime.POST) structure();
         return bpmnDiagram;
+    }
+
+    public EfficientTree discoverTreeFromSDFG(SimpleDirectlyFollowGraph sdfg) {
+        SimpleLog slog = sdfg.getSimpleLog();
+        XLog xlog = slog.getXLog();
+        MiningParametersIM parameters = new MiningParametersIM();
+        IMLog imlog = parameters.getIMLog(xlog);
+        PackageManager.Canceller canceller = () -> false;
+
+        return InductiveMiner.mineEfficientTree(imlog, parameters, canceller);
     }
 
     private void transformDFGPintoBPMN() {

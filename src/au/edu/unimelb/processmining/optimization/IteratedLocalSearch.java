@@ -28,6 +28,9 @@ public class IteratedLocalSearch implements Metaheuristics {
     private SimpleDirectlyFollowGraph bestSDFG;
 
     private ArrayList<Double> bestScores;
+    private ArrayList<Double> bestFitness;
+    private ArrayList<Double> bestPrecision;
+
     private ArrayList<Integer> hits;
     Double[] currentAccuracy = new Double[3];
 
@@ -38,7 +41,7 @@ public class IteratedLocalSearch implements Metaheuristics {
     private int perturbations;
 
     private int noImprovementCounter = 0;
-    private int maxIterationsBeforeRaise = 5;
+    private int maxIterationsBeforeRaise = 4;
 
     private int maxK = 5;
 
@@ -76,6 +79,8 @@ public class IteratedLocalSearch implements Metaheuristics {
 
         hits = new ArrayList<>();
         bestScores = new ArrayList<>();
+        bestFitness = new ArrayList<>();
+        bestPrecision = new ArrayList<>();
 
         writer = null;
         try {
@@ -92,6 +97,8 @@ public class IteratedLocalSearch implements Metaheuristics {
         long iTime = System.currentTimeMillis();
 
         start(slog, order);
+        bestFitness.add(currentAccuracy[0]);
+        bestPrecision.add(currentAccuracy[1]);
         bestScores.add(currentAccuracy[2]);
         hits.add(iterations);
         bestSDFG = currentSDFG;
@@ -100,13 +107,45 @@ public class IteratedLocalSearch implements Metaheuristics {
         while (System.currentTimeMillis() - eTime < timeout && iterations < maxit && currentSDFG != null) {
             try {
 
+                System.out.println("ITERATION: " + iterations);
+
                 if (currentAccuracy[2] > bestScores.get(bestScores.size() - 1)) {
                     System.out.println("INFO - improved fscore " + currentAccuracy[2]);
+                    bestFitness.add(currentAccuracy[0]);
+                    bestPrecision.add(currentAccuracy[1]);
                     bestScores.add(currentAccuracy[2]);
                     hits.add(iterations);
                     bestSDFG = currentSDFG;
                     bestBPMN = currentBPMN;
+                    noImprovementCounter = 0;
+                } else {
+                    noImprovementCounter++;
                 }
+
+                /*if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
+                    order++;
+                    System.out.println("\u001B[32mINFO - No improvement for " + noImprovementCounter + " iterations, increasing k to " + order + "\u001B[0m");
+
+                    // Recompute Log abstraction at new k
+                    staLog = LogAbstraction.subtrace(slog, order);
+
+                    // Re-evaluate best tree at new k
+                    MarkovianBasedEvaluator reevaluateBest = new MarkovianBasedEvaluator(staLog, slog, minerProxy, bestBPMN, order);
+                    ExecutorService reevaluateService = Executors.newSingleThreadExecutor();
+                    Future<Object[]> reevaluateResult = reevaluateService.submit(reevaluateBest);
+                    Object[] newResult = reevaluateResult.get(timeout, TimeUnit.MILLISECONDS);
+                    reevaluateService.shutdownNow();
+
+                    currentAccuracy[0] = (Double) newResult[0];
+                    currentAccuracy[1] = (Double) newResult[1];
+                    currentAccuracy[2] = (Double) newResult[2];
+                    staProcess = (SubtraceAbstraction) newResult[3];
+                    currentBPMN = (BPMNDiagram) newResult[4];
+                    ComputeTime += (long) newResult[5];
+                    currentSDFG = bestSDFG;
+
+                    noImprovementCounter = 0;
+                }*/
 
                 iTime = System.currentTimeMillis() - iTime;
                 if (export)
@@ -121,7 +160,7 @@ public class IteratedLocalSearch implements Metaheuristics {
 /**     if precision is higher than fitness, we explore the DFGs having more edges.
  *      to do so, we select the most frequent edges of the markovian abstraction of the log that do not appear
  *      in the markovian abstraction of the process, NOTE: each edge is a subtrace.
- *      we select C*N subtraces and we add C subtraces at a time to a copy of the current DFG.
+ *      we select C*N subtraces, and we add C subtraces at a time to a copy of the current DFG.
  *      each of this copy is considered to be a neighbour of the current DFG with an improved fitness.
  *      for each of this copy we compute the f-score, and we retain the one with highest f-score.
  **/
@@ -142,7 +181,7 @@ public class IteratedLocalSearch implements Metaheuristics {
 /**     if fitness is higher than precision, we explore the DFGs having less edges.
  *      to do so, we select random edges of the markovian abstraction of the process that do not appear
  *      in the markovian abstraction of the log.
- *      we select C*N subtraces and we add C subtraces at a time to a copy of the current DFG.
+ *      we select C*N subtraces, and we add C subtraces at a time to a copy of the current DFG.
  *      each of this copy is considered to be a neighbour of the current DFG with an improved fitness.
  *      for each of this copy we compute the f-score, and we retain the one with highest f-score.
  **/
@@ -188,7 +227,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     neighboursEvaluations.put(neighbourSDFG, evalResult);
                 }
 
-                sleep(0);
+                sleep(minerProxy.getTimeout());
 
                 improved = false;
                 for (SimpleDirectlyFollowGraph neighbourSDFG : neighboursEvaluations.keySet()) {
@@ -230,10 +269,6 @@ public class IteratedLocalSearch implements Metaheuristics {
             }
         }
 
-        System.out.println("Total Mine Time: " + MineTime + "ms");
-        System.out.println("Total Modify Time: " + ModifyTime + "ms");
-        System.out.println("Total Compute Time: " + ComputeTime + "ms");
-
         eTime = System.currentTimeMillis() - eTime;
         String hitrow = "";
         String fscorerow = "";
@@ -245,6 +280,17 @@ public class IteratedLocalSearch implements Metaheuristics {
         writer.println(hitrow + (double) (eTime) / 1000.0);
         writer.println(fscorerow + (double) (eTime) / 1000.0);
         writer.close();
+
+        System.out.println("\u001B[32mTotal Mine Time: " + MineTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Modify Time: " + ModifyTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Compute Time: " + ComputeTime + "ms\u001B[0m");
+
+        System.out.println("\u001B[32mBest Fitness achieved: " + bestFitness.get(bestFitness.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest Precision achieved: " + bestPrecision.get(bestPrecision.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
+
+        System.out.println("\u001B[32mTotal Iterations: " + iterations + "\u001B[0m");
+        System.out.println("\u001B[32mFinal k value reached: " + order + "\u001B[0m");
 
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
 //        System.out.println("STATS - total perturbations: " + perturbations);
@@ -274,6 +320,8 @@ public class IteratedLocalSearch implements Metaheuristics {
 
         hits = new ArrayList<>();
         bestScores = new ArrayList<>();
+        bestFitness = new ArrayList<>();
+        bestPrecision = new ArrayList<>();
 
         writer = null;
         try {
@@ -290,6 +338,8 @@ public class IteratedLocalSearch implements Metaheuristics {
         long iTime = System.currentTimeMillis();
 
         startTree(slog, order);
+        bestFitness.add(currentAccuracy[0]);
+        bestPrecision.add(currentAccuracy[1]);
         bestScores.add(currentAccuracy[2]);
         hits.add(iterations);
         bestSDFG = currentSDFG;
@@ -300,10 +350,13 @@ public class IteratedLocalSearch implements Metaheuristics {
 
                 if (currentAccuracy[2] > bestScores.get(bestScores.size() - 1)) {
                     System.out.println("INFO - improved fscore " + currentAccuracy[2]);
+                    bestFitness.add(currentAccuracy[0]);
+                    bestPrecision.add(currentAccuracy[1]);
                     bestScores.add(currentAccuracy[2]);
                     hits.add(iterations);
                     bestSDFG = currentSDFG;
                     bestTree = currentTree;
+                    noImprovementCounter = 0;
                 } else {
                     noImprovementCounter++;
                 }
@@ -312,7 +365,7 @@ public class IteratedLocalSearch implements Metaheuristics {
 
                 /*if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
                     order++;
-                    System.out.println("INFO - No improvement for " + noImprovementCounter + " iterations, increasing k to " + order);
+                    System.out.println("\u001B[32mINFO - No improvement for " + noImprovementCounter + " iterations, increasing k to " + order + "\u001B[0m");
 
                     // Recompute Log abstraction at new k
                     staLog = LogAbstraction.subtraceTree(slog, order);
@@ -347,7 +400,7 @@ public class IteratedLocalSearch implements Metaheuristics {
 /**     if precision is higher than fitness, we explore the DFGs having more edges.
  *      to do so, we select the most frequent edges of the markovian abstraction of the log that do not appear
  *      in the markovian abstraction of the process, NOTE: each edge is a subtrace.
- *      we select C*N subtraces and we add C subtraces at a time to a copy of the current DFG.
+ *      we select C*N subtraces, and we add C subtraces at a time to a copy of the current DFG.
  *      each of this copy is considered to be a neighbour of the current DFG with an improved fitness.
  *      for each of this copy we compute the f-score, and we retain the one with highest f-score.
  **/
@@ -368,7 +421,7 @@ public class IteratedLocalSearch implements Metaheuristics {
 /**     if fitness is higher than precision, we explore the DFGs having less edges.
  *      to do so, we select random edges of the markovian abstraction of the process that do not appear
  *      in the markovian abstraction of the log.
- *      we select C*N subtraces and we add C subtraces at a time to a copy of the current DFG.
+ *      we select C*N subtraces, and we add C subtraces at a time to a copy of the current DFG.
  *      each of this copy is considered to be a neighbour of the current DFG with an improved fitness.
  *      for each of this copy we compute the f-score, and we retain the one with highest f-score.
  **/
@@ -392,11 +445,11 @@ public class IteratedLocalSearch implements Metaheuristics {
 
                 if (neighbours.isEmpty()) {
 //                    System.out.println("WARNING - empty neighbourhood " + neighbours.size() + " neighbours.");
-                    while (!perturb(slog, order)) ;
+                    while (!perturbTree(slog, order)) ;
                     continue;
                 }
 
-                multiThreadService = Executors.newFixedThreadPool(neighbours.size());
+                multiThreadService = Executors.newFixedThreadPool(Math.min(32, neighbours.size()));
                 for (SimpleDirectlyFollowGraph neighbourSDFG : neighbours) {
                     try {
                         long modifyStart = System.currentTimeMillis();
@@ -414,7 +467,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     neighboursEvaluations.put(neighbourSDFG, evalResult);
                 }
 
-                sleep(0);
+                sleep(minerProxy.getTimeout());
 
                 improved = false;
                 for (SimpleDirectlyFollowGraph neighbourSDFG : neighboursEvaluations.keySet()) {
@@ -447,7 +500,7 @@ public class IteratedLocalSearch implements Metaheuristics {
  */
                 if (!improved && ++icounter == order) {
                     icounter = 0;
-                    while (!perturb(slog, order)) ;
+                    while (!perturbTree(slog, order)) ;
                 }
 
             } catch (Exception e) {
@@ -456,10 +509,6 @@ public class IteratedLocalSearch implements Metaheuristics {
                 while (!perturbTree(slog, order)) ;
             }
         }
-
-        System.out.println("Total Mine Time: " + MineTime + "ms");
-        System.out.println("Total Modify Time: " + ModifyTime + "ms");
-        System.out.println("Total Compute Time: " + ComputeTime + "ms");
 
         eTime = System.currentTimeMillis() - eTime;
         String hitrow = "";
@@ -472,6 +521,17 @@ public class IteratedLocalSearch implements Metaheuristics {
         writer.println(hitrow + (double) (eTime) / 1000.0);
         writer.println(fscorerow + (double) (eTime) / 1000.0);
         writer.close();
+
+        System.out.println("\u001B[32mTotal Mine Time: " + MineTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Modify Time: " + ModifyTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Compute Time: " + ComputeTime + "ms\u001B[0m");
+
+        System.out.println("\u001B[32mBest Fitness achieved: " + bestFitness.get(bestFitness.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest Precision achieved: " + bestPrecision.get(bestPrecision.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
+
+        System.out.println("\u001B[32mTotal Iterations: " + iterations + "\u001B[0m");
+        System.out.println("\u001B[32mFinal k value reached: " + order + "\u001B[0m");
 
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
 //        System.out.println("STATS - total perturbations: " + perturbations);
@@ -506,7 +566,7 @@ public class IteratedLocalSearch implements Metaheuristics {
             currentAccuracy[2] = (Double) result[2];
             staProcess = (SubtraceAbstraction) result[3];
             currentBPMN = (BPMNDiagram) result[4];
-            ComputeTime = (long) result[5];
+            ComputeTime += (long) result[5];
 
             executor.shutdownNow();
 //            System.out.println("START - done.");
@@ -553,7 +613,7 @@ public class IteratedLocalSearch implements Metaheuristics {
             currentAccuracy[2] = (Double) result[2];
             staProcess = (SubtraceAbstraction) result[3];
             currentTree = (EfficientTree) result[4];
-            ComputeTime = (long) result[5];
+            ComputeTime += (long) result[5];
 
             executor.shutdownNow();
 //            System.out.println("START - done.");
@@ -607,7 +667,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                 currentAccuracy[2] = (Double) result[2];
                 staProcess = (SubtraceAbstraction) result[3];
                 currentBPMN = (BPMNDiagram) result[4];
-                ComputeTime = (long) result[5];
+                ComputeTime += (long) result[5];
                 currentSDFG = sdfg;
 //                System.out.println("PERTURBATION - done.");
                 writer.println("p,p,p,p,p");

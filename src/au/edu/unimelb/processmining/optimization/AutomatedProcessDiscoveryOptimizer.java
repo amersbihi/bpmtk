@@ -15,6 +15,7 @@ import org.processmining.plugins.InductiveMiner.plugins.EfficientTreeExportPlugi
 import org.processmining.plugins.bpmn.plugins.BpmnExportPlugin;
 
 import java.io.File;
+import java.sql.Time;
 
 public class AutomatedProcessDiscoveryOptimizer {
 
@@ -22,7 +23,7 @@ public class AutomatedProcessDiscoveryOptimizer {
     private static int NEIGHBOURHOOD = 5;
     private static int TIMEOUT = 300000;
 
-    public enum MetaOpt {RLS, ILS, TS, SA}
+    public enum MetaOpt {RLS, ILS, TS, SA, RLSTree, ILSTree, TSTree, SATree}
 
     private MinerProxy minerProxy;
     private int order;
@@ -92,14 +93,26 @@ public class AutomatedProcessDiscoveryOptimizer {
     public EfficientTree searchOptimalTree() {
 
         switch (metaheuristics) {
-            case ILS:
+            case RLSTree:
+                explorer = new RepeatedLocalSearch(minerProxy);
+                tree = explorer.searchOptimalTree(slog, order, MAXIT, NEIGHBOURHOOD, TIMEOUT, modelName);
+                break;
+            case ILSTree:
                 explorer = new IteratedLocalSearch(minerProxy);
+                tree = explorer.searchOptimalTree(slog, order, MAXIT, NEIGHBOURHOOD, TIMEOUT, modelName);
+                break;
+            case TSTree:
+                explorer = new TabuSearch(minerProxy);
+                tree = explorer.searchOptimalTree(slog, order, MAXIT, NEIGHBOURHOOD, TIMEOUT, modelName);
+                break;
+            case SATree:
+                explorer = new SimulatedAnnealing(minerProxy);
                 tree = explorer.searchOptimalTree(slog, order, MAXIT, NEIGHBOURHOOD, TIMEOUT, modelName);
                 break;
         }
 
 //        exportBPMN(bpmn, ".\\os-bpmn_" + System.currentTimeMillis() + ".bpmn");
-        exportTree(tree, "./" + metaheuristics.toString() + "_" + modelName + ".bpmn");
+        exportTree(tree, "./" + metaheuristics.toString() + "_" + modelName + ".ptml");
 
         return tree;
     }
