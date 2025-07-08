@@ -58,8 +58,8 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
 
             if (staProcess == null) return new Object[]{0.0, 0.0, 0.0, null, tree != null ? tree : bpmn};
 
-            double fitness = staLog.minus(staProcess);
-            double precision = staProcess.minus(staLog);
+            double fitness = staLog.computeMAFitness(staProcess);
+            double precision = staProcess.computeMAPrecision(staLog);
             double fscore = (fitness + precision == 0) ? 0.0 : (2.0 * fitness * precision) / (fitness + precision);
 
             results[0] = fitness;

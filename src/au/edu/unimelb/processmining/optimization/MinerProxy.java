@@ -255,6 +255,8 @@ public class MinerProxy {
 
     public EfficientTree getTree(SimpleDirectlyFollowGraph sdfg) throws Exception {
         switch (tag) {
+            case SM:
+                return sm.discoverTreeFromSDFG(sdfg);
             case IM:
                 return inductive.discoverTreeFromSDFG(sdfg);
             default:

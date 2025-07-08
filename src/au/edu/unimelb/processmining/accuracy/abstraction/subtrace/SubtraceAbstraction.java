@@ -52,6 +52,37 @@ public class SubtraceAbstraction extends Abstraction {
         }
     }
 
+    public double computeMAFitness(SubtraceAbstraction processAbstraction) {
+        if (processAbstraction == null) return 0.0;
+
+        Set<String> missingSubtraces = new HashSet<>(subtraces.keySet());
+        missingSubtraces.removeAll(processAbstraction.subtraces.keySet());
+
+        if (this.globalGramsCount == 0.0) {
+            return 1.0 - ((double) missingSubtraces.size() / subtraces.size());
+        }
+
+        double missingFrequency = 0.0;
+        for (String s : missingSubtraces) {
+            missingFrequency += subtraces.get(s).frequency;
+        }
+
+        return 1.0 - (missingFrequency / globalGramsCount);
+    }
+
+    public double computeMAPrecision(SubtraceAbstraction logAbstraction) {
+        if (logAbstraction == null) return 0.0;
+
+        // Set of subtraces in the model (this) that do not appear in the log abstraction
+        Set<String> extraSubtraces = new HashSet<>(subtraces.keySet());
+        extraSubtraces.removeAll(logAbstraction.subtraces.keySet());
+
+        if (subtraces.isEmpty()) return 1.0;
+
+        return 1.0 - ((double) extraSubtraces.size() / subtraces.size());
+    }
+
+
     public double minus(Abstraction a) {
         double frequencyPenalty;
         Set<String> ast;
@@ -152,6 +183,10 @@ public class SubtraceAbstraction extends Abstraction {
         return differences.remove(random.nextInt(differences.size()));
     }
 
+    public Double getGlobalGramsCount() {
+        return globalGramsCount;
+    }
+
     public Set<String> getDifferences(SubtraceAbstraction sa, int neighbours) {
         Set<String> differences;
         ArrayList<Subtrace> sortedSubtraces;
@@ -231,21 +266,24 @@ public class SubtraceAbstraction extends Abstraction {
         }
     }
 
-    public static SubtraceAbstraction abstractProcessBehaviour(Set<String> strings, int order, Map<Character, Integer> charToIDs) {
+    public static SubtraceAbstraction abstractProcessBehaviour(Set<String> traces, int order, Map<Character, Integer> charToIDs) {
         SubtraceAbstraction abstraction = new SubtraceAbstraction(order);
 
-        for (String trace : strings) {
-            if(trace.startsWith("+")){
+        for (String trace : traces) {
+            if (trace.startsWith("+")) {
                 trace = "-" + trace.substring(1);
             }
+
             Subtrace subtrace = new Subtrace(order);
 
             for (char c : trace.toCharArray()) {
-                int id = charToIDs.get(c);
-                subtrace.add(id);
+                Integer id = charToIDs.get(c);
+                if (id != null) {
+                    subtrace.add(id);
+                }
             }
 
-            if (trace.endsWith("-")){
+            if (trace.endsWith("-")) {
                 subtrace.add(Subtrace.INIT);
             }
 

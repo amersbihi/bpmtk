@@ -18,15 +18,15 @@ import org.processmining.models.graphbased.directed.bpmn.elements.Event;
 import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
 import org.processmining.models.graphbased.directed.bpmn.elements.SubProcess;
 import org.processmining.models.semantics.petrinet.Marking;
-import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
+import org.processmining.plugins.InductiveMiner.efficienttree.*;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTreeReduce.ReductionFailedException;
-import org.processmining.plugins.InductiveMiner.efficienttree.UnknownTreeNodeException;
 import org.processmining.plugins.inductiveminer2.logs.IMLog;
-import org.processmining.plugins.inductiveminer2.mining.InductiveMiner;
+import org.processmining.plugins.inductiveminer2.plugins.InductiveMinerPlugin;
 import org.processmining.plugins.inductiveminer2.variants.MiningParametersIM;
 import org.processmining.plugins.inductiveminer2.withoutlog.MiningParametersWithoutLog;
 import org.processmining.plugins.inductiveminer2.withoutlog.dfgmsd.DfgMsdImpl;
 import org.processmining.plugins.inductiveminer2.withoutlog.variants.MiningParametersIMWithoutLog;
+import org.processmining.processtree.ProcessTree;
 
 
 public class IMdProxy {
@@ -47,8 +47,10 @@ public class IMdProxy {
         MiningParametersIM parameters = new MiningParametersIM();
         IMLog imlog = parameters.getIMLog(xlog);
         Canceller canceller = () -> false;
-
-        return InductiveMiner.mineEfficientTree(imlog, parameters, canceller);
+        EfficientTree efficientTree = InductiveMinerPlugin.mineTree(imlog, parameters, canceller);
+        ProcessTree processTree = EfficientTree2processTree.convert(efficientTree);
+        processTree = ProcessTreeToBinaryConverter.processTreeToBinaryProcessTree(processTree);
+        return ProcessTree2EfficientTree.convert(processTree);
     }
 
     public AcceptingPetriNet DFG2ModelWithIMd(SimpleDirectlyFollowGraph sdfg)

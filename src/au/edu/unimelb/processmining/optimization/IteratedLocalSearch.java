@@ -632,7 +632,6 @@ public class IteratedLocalSearch implements Metaheuristics {
         }
     }
 
-
     private boolean perturb(SimpleLog slog, int order) {
         MarkovianBasedEvaluator markovianBasedEvaluator;
         ExecutorService executor;

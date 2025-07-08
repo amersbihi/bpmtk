@@ -29,7 +29,7 @@ import java.util.*;
 
 public class MkAbstractionTest {
 
-    private static final int K = 3;
+    private static final int K = 4;
     private static Map<String, Integer> label2id = new HashMap<>();
     private static Map<Integer, String> id2label = new HashMap<>();
 

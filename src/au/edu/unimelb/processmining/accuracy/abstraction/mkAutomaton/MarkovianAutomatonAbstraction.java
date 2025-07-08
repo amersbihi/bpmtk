@@ -3,6 +3,7 @@ package au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton;
 import au.edu.qut.processmining.log.SimpleLog;
 import dk.brics.automaton.*;
 import org.processmining.plugins.InductiveMiner.efficienttree.*;
+
 import java.util.*;
 
 public class MarkovianAutomatonAbstraction {
@@ -37,8 +38,8 @@ public class MarkovianAutomatonAbstraction {
         }
 
         /*if (tree.isActivity(node)) {
-            return mkLeafNode(tree.getActivityName(node).toCharArray()[0], k);              // for testing in MkAbstractionTest class
-        }
+            return mkLeafNode(tree.getActivityName(node).toCharArray()[0], k);              // for testing in MkAbstractionTest.class, we dont need a
+        }                                                                                   // mapping from log activities to tree activities
         if (tree.isTau(node)) {
             return mkLeafNode('τ', k);
         }*/
@@ -409,7 +410,6 @@ public class MarkovianAutomatonAbstraction {
         automaton.addEpsilons(epsilonPairs);
         automaton.setInitialState(subState);
         automaton.setDeterministic(false);
-
         automaton.determinize();
 
         return automaton;
@@ -624,9 +624,36 @@ public class MarkovianAutomatonAbstraction {
         }
         // Add artificial start/end marker (-2)
         if (!CharToIDs.containsKey('-')) {
-            CharToIDs.put('-', artificialMarker );
+            CharToIDs.put('-', artificialMarker);
             IDsToChar.put(artificialMarker, '-');
         }
+    }
+
+    public Map<String, Integer> getAcceptedStrings() {
+        Map<String, Integer> traceCounts = new HashMap<>();
+        Set<State> visitedStates = new HashSet<>();
+        explore(automaton.getInitialState(), new StringBuilder(), traceCounts, visitedStates);
+        return traceCounts;
+    }
+
+    private void explore(State state, StringBuilder current, Map<String, Integer> traceCounts, Set<State> visitedStates) {
+        if (visitedStates.contains(state)) return;
+        visitedStates.add(state);
+
+        if (state.isAccept()) {
+            String trace = current.toString();
+            traceCounts.put(trace, traceCounts.getOrDefault(trace, 0) + 1);
+        }
+
+        for (Transition t : state.getTransitions()) {
+            for (int c = t.getMin(); c <= t.getMax(); c++) {
+                current.append((char) c);
+                explore(t.getDest(), current, traceCounts, visitedStates);
+                current.deleteCharAt(current.length() - 1);
+            }
+        }
+
+        visitedStates.remove(state);
     }
 
     public Map<Character, Integer> getCharToIDs() {
