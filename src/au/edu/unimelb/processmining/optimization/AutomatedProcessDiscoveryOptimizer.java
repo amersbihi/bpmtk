@@ -7,19 +7,28 @@ import com.raffaeleconforti.log.util.LogImporter;
 import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.factory.XFactoryNaiveImpl;
 import org.deckfour.xes.model.XLog;
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
 import org.processmining.contexts.uitopia.UIContext;
 import org.processmining.contexts.uitopia.UIPluginContext;
+import org.processmining.framework.plugin.PluginContext;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree2AcceptingPetriNet;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree2processTree;
 import org.processmining.plugins.InductiveMiner.plugins.EfficientTreeExportPlugin;
 import org.processmining.plugins.bpmn.plugins.BpmnExportPlugin;
+import org.processmining.plugins.kutoolbox.utils.FakePluginContext;
+import org.processmining.plugins.pnml.exporting.PnmlExportNetToPNML;
+import org.processmining.processtree.ProcessTree;
+import org.processmining.processtree.ptml.exporting.PtmlExportTree;
 
 import java.io.File;
 import java.sql.Time;
+import java.io.IOException;
 
 public class AutomatedProcessDiscoveryOptimizer {
 
-    private static int MAXIT = 50;
+    private static int MAXIT = 10;
     private static int NEIGHBOURHOOD = 5;
     private static int TIMEOUT = 300000;
 
@@ -63,7 +72,7 @@ public class AutomatedProcessDiscoveryOptimizer {
         return true;
     }
 
-    public BPMNDiagram searchOptimalBPMN() {
+    public BPMNDiagram searchOptimalBPMN() throws Exception {
 
         switch (metaheuristics) {
             case RLS:
@@ -84,13 +93,13 @@ public class AutomatedProcessDiscoveryOptimizer {
                 break;
         }
 
-//        exportBPMN(bpmn, ".\\os-bpmn_" + System.currentTimeMillis() + ".bpmn");
-        exportBPMN(bpmn, "./" + metaheuristics.toString() + "_" + modelName + ".bpmn");
+        //exportBPMN(bpmn, ".\\models\\bpmn" + metaheuristics.toString() + order + ".bpmn");
+        //exportBPMN(bpmn, "./" + metaheuristics.toString() + "_" + modelName + ".bpmn");
 
         return bpmn;
     }
 
-    public EfficientTree searchOptimalTree() {
+    public EfficientTree searchOptimalTree() throws IOException {
 
         switch (metaheuristics) {
             case RLSTree:
@@ -111,11 +120,40 @@ public class AutomatedProcessDiscoveryOptimizer {
                 break;
         }
 
-//        exportBPMN(bpmn, ".\\os-bpmn_" + System.currentTimeMillis() + ".bpmn");
-        exportTree(tree, "./" + metaheuristics.toString() + "_" + modelName + ".ptml");
+
+        /*AcceptingPetriNet net = EfficientTree2AcceptingPetriNet.convert(tree);
+        PnmlExportNetToPNML exporter = new PnmlExportNetToPNML();
+        try {
+            exporter.exportPetriNetToPNMLFile(new FakePluginContext(), net.getNet(), new File("C:\\Users\\Amer\\gitprojects\\bpmtk\\models\\ILSTree best.pnml"));
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }*/
+
+        //EfficientTree2processTree.convert(tree);
+        //exportTreeAsPTML(tree, ".\\models\\ptml" + metaheuristics.toString() + order + ".ptml");
+        //exportTree(tree, "./" + metaheuristics.toString() + "_" + modelName + ".ptml");
 
         return tree;
     }
+
+    public static void exportTreeAsPTML(EfficientTree et, String path) {
+        // Convert EfficientTree to ProcessTree
+        ProcessTree pt = EfficientTree2processTree.convert(et);
+
+        // Create PTML exporter
+        PtmlExportTree exporter = new PtmlExportTree();
+
+        // Create plugin context
+        UIContext ptUiContext = new UIContext();
+        UIPluginContext pluginContext = ptUiContext.getMainPluginContext();
+        try {
+            // Export to PTML
+            exporter.exportDefault(pluginContext, pt, new File(path));
+        } catch (Exception e) {
+            System.err.println("ERROR exporting tree to PTML: " + e.getMessage());
+        }
+    }
+
 
     public static void exportTree(EfficientTree tree, String path) {
         EfficientTreeExportPlugin efficientTreeExportPlugin = new EfficientTreeExportPlugin();

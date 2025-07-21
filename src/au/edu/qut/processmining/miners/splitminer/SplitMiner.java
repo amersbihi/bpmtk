@@ -23,17 +23,15 @@ package au.edu.qut.processmining.miners.splitminer;
 import au.edu.qut.bpmn.helper.DiagramHandler;
 import au.edu.qut.bpmn.helper.GatewayMap;
 import au.edu.qut.bpmn.structuring.StructuringService;
-import au.edu.qut.processmining.log.ComplexLog;
 import au.edu.qut.processmining.log.LogParser;
 import au.edu.qut.processmining.log.SimpleLog;
-import au.edu.qut.processmining.miners.splitminer.dfgp.DFGEdge;
-import au.edu.qut.processmining.miners.splitminer.dfgp.DFGNode;
 import au.edu.qut.processmining.miners.splitminer.dfgp.DirectlyFollowGraphPlus;
 import au.edu.qut.processmining.miners.splitminer.oracle.Oracle;
 import au.edu.qut.processmining.miners.splitminer.oracle.OracleItem;
 import au.edu.qut.processmining.miners.splitminer.ui.dfgp.DFGPUIResult;
 import au.edu.qut.processmining.miners.splitminer.ui.miner.SplitMinerUIResult;
 
+import au.edu.qut.tree.ProcessTreeToBinaryConverter;
 import au.edu.unimelb.processmining.optimization.SimpleDirectlyFollowGraph;
 import de.hpi.bpt.graph.DirectedEdge;
 import de.hpi.bpt.graph.DirectedGraph;
@@ -43,9 +41,6 @@ import de.hpi.bpt.graph.algo.rpst.RPSTNode;
 import de.hpi.bpt.graph.algo.tctree.TCType;
 import de.hpi.bpt.hypergraph.abs.Vertex;
 
-import de.hpi.bpt.process.petri.util.BisimilarityChecker;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.deckfour.xes.classification.XEventClassifier;
 import org.deckfour.xes.model.XLog;
 
@@ -56,9 +51,12 @@ import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
 import org.processmining.models.graphbased.directed.bpmn.elements.*;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree2processTree;
+import org.processmining.plugins.InductiveMiner.efficienttree.ProcessTree2EfficientTree;
 import org.processmining.plugins.inductiveminer2.logs.IMLog;
-import org.processmining.plugins.inductiveminer2.mining.InductiveMiner;
+import org.processmining.plugins.inductiveminer2.plugins.InductiveMinerPlugin;
 import org.processmining.plugins.inductiveminer2.variants.MiningParametersIM;
+import org.processmining.processtree.ProcessTree;
 
 import java.util.*;
 
@@ -195,8 +193,10 @@ public class SplitMiner {
         MiningParametersIM parameters = new MiningParametersIM();
         IMLog imlog = parameters.getIMLog(xlog);
         PackageManager.Canceller canceller = () -> false;
-
-        return InductiveMiner.mineEfficientTree(imlog, parameters, canceller);
+        EfficientTree efficientTree = InductiveMinerPlugin.mineTree(imlog, parameters, canceller);
+        ProcessTree processTree = EfficientTree2processTree.convert(efficientTree);
+        processTree = ProcessTreeToBinaryConverter.processTreeToBinaryProcessTree(processTree);
+        return ProcessTree2EfficientTree.convert(processTree);
     }
 
     private void transformDFGPintoBPMN() {

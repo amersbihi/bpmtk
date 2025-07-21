@@ -276,14 +276,13 @@ public class RepeatedLocalSearch implements Metaheuristics {
         writer.println(fscorerow + (double) (eTime) / 1000.0);
         writer.close();
 
+        // Print summary
         System.out.println("\u001B[32mTotal Mine Time: " + MineTime + "ms\u001B[0m");
         System.out.println("\u001B[32mTotal Modify Time: " + ModifyTime + "ms\u001B[0m");
         System.out.println("\u001B[32mTotal Compute Time: " + ComputeTime + "ms\u001B[0m");
-
         System.out.println("\u001B[32mBest Fitness achieved: " + bestFitness.get(bestFitness.size() - 1) + "\u001B[0m");
         System.out.println("\u001B[32mBest Precision achieved: " + bestPrecision.get(bestPrecision.size() - 1) + "\u001B[0m");
         System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
-
         System.out.println("\u001B[32mTotal Iterations: " + iterations + "\u001B[0m");
         System.out.println("\u001B[32mFinal k value reached: " + order + "\u001B[0m");
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
@@ -524,14 +523,13 @@ public class RepeatedLocalSearch implements Metaheuristics {
         writer.println(fscorerow + (double) (eTime) / 1000.0);
         writer.close();
 
+        // Print summary
         System.out.println("\u001B[32mTotal Mine Time: " + MineTime + "ms\u001B[0m");
         System.out.println("\u001B[32mTotal Modify Time: " + ModifyTime + "ms\u001B[0m");
         System.out.println("\u001B[32mTotal Compute Time: " + ComputeTime + "ms\u001B[0m");
-
         System.out.println("\u001B[32mBest Fitness achieved: " + bestFitness.get(bestFitness.size() - 1) + "\u001B[0m");
         System.out.println("\u001B[32mBest Precision achieved: " + bestPrecision.get(bestPrecision.size() - 1) + "\u001B[0m");
         System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
-
         System.out.println("\u001B[32mTotal Iterations: " + iterations + "\u001B[0m");
         System.out.println("\u001B[32mFinal k value reached: " + order + "\u001B[0m");
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");

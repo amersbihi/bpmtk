@@ -1,4 +1,4 @@
-package au.edu.unimelb.services;
+package au.edu.unimelb.tests;
 
 import au.edu.qut.bpmn.io.BPMNDiagramImporter;
 import au.edu.qut.bpmn.io.impl.BPMNDiagramImporterImpl;
@@ -14,12 +14,8 @@ import com.raffaeleconforti.log.util.LogImporter;
 import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.factory.XFactoryNaiveImpl;
 import org.deckfour.xes.model.XLog;
-import org.processmining.contexts.uitopia.UIContext;
-import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
-import org.processmining.models.graphbased.directed.petrinet.elements.Place;
-import org.processmining.plugins.bpmn.plugins.BpmnExportPlugin;
 import org.processmining.plugins.kutoolbox.utils.FakePluginContext;
 import org.processmining.plugins.pnml.exporting.PnmlExportNetToPNML;
 

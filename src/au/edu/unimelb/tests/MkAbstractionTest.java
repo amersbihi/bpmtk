@@ -1,10 +1,9 @@
-package au.edu.unimelb.services;
+package au.edu.unimelb.tests;
 
 import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.Subtrace;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
-import dk.brics.automaton.Automaton;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.impl.XLogImpl;
 import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;

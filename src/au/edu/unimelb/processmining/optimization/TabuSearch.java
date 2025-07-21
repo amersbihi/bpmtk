@@ -27,6 +27,8 @@ public class TabuSearch implements Metaheuristics {
     private EfficientTree bestTree;
 
     private ArrayList<Double> bestScores;
+    private ArrayList<Double> bestFitness;
+    private ArrayList<Double> bestPrecision;
     private ArrayList<Integer> hits;
     Double[] currentAccuracy = new Double[3];
 
@@ -84,6 +86,8 @@ public class TabuSearch implements Metaheuristics {
 
         hits = new ArrayList<>();
         bestScores = new ArrayList<>();
+        bestFitness = new ArrayList<>();
+        bestPrecision = new ArrayList<>();
 
         writer = null;
         try {
@@ -101,6 +105,8 @@ public class TabuSearch implements Metaheuristics {
         long iTime = System.currentTimeMillis();
 
         start(slog, order);
+        bestFitness.add(currentAccuracy[0]);
+        bestPrecision.add(currentAccuracy[1]);
         bestScores.add(currentAccuracy[2]);
         hits.add(iterations);
         bestSDFG = currentSDFG;
@@ -111,6 +117,8 @@ public class TabuSearch implements Metaheuristics {
 
                 if (currentAccuracy[2] > bestScores.get(bestScores.size() - 1)) {
                     System.out.println("INFO - improved fscore " + currentAccuracy[2]);
+                    bestFitness.add(currentAccuracy[0]);
+                    bestPrecision.add(currentAccuracy[1]);
                     bestScores.add(currentAccuracy[2]);
                     hits.add(iterations);
                     bestSDFG = currentSDFG;
@@ -287,12 +295,6 @@ public class TabuSearch implements Metaheuristics {
                 tabuize(slog, order);
             }
         }
-
-        System.out.println("\u001B[32mTotal Mine Time: " + MineTime + "ms\u001B[0m");
-        System.out.println("\u001B[32mTotal Modify Time: " + ModifyTime + "ms\u001B[0m");
-        System.out.println("\u001B[32mTotal Compute Time: " + ComputeTime + "ms\u001B[0m");
-        System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
-
         eTime = System.currentTimeMillis() - eTime;
         String hitrow = "";
         String fscorerow = "";
@@ -304,9 +306,17 @@ public class TabuSearch implements Metaheuristics {
         writer.println(hitrow + (double) (eTime) / 1000.0);
         writer.println(fscorerow + (double) (eTime) / 1000.0);
         writer.close();
-
+        // Print summary
+        System.out.println("\u001B[32mTotal Mine Time: " + MineTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Modify Time: " + ModifyTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Compute Time: " + ComputeTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mBest Fitness achieved: " + bestFitness.get(bestFitness.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest Precision achieved: " + bestPrecision.get(bestPrecision.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mTotal Iterations: " + iterations + "\u001B[0m");
+        System.out.println("\u001B[32mFinal k value reached: " + order + "\u001B[0m");
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
-//        System.out.println("STATS - total tabuizations: " + tabuizations);
+//      System.out.println("STATS - total tabuizations: " + tabuizations);
 
         return bestBPMN;
     }
@@ -341,6 +351,8 @@ public class TabuSearch implements Metaheuristics {
 
         hits = new ArrayList<>();
         bestScores = new ArrayList<>();
+        bestFitness = new ArrayList<>();
+        bestPrecision = new ArrayList<>();
 
         writer = null;
         try {
@@ -358,6 +370,8 @@ public class TabuSearch implements Metaheuristics {
         long iTime = System.currentTimeMillis();
 
         startTree(slog, order);
+        bestFitness.add(currentAccuracy[0]);
+        bestPrecision.add(currentAccuracy[1]);
         bestScores.add(currentAccuracy[2]);
         hits.add(iterations);
         bestSDFG = currentSDFG;
@@ -368,6 +382,8 @@ public class TabuSearch implements Metaheuristics {
 
                 if (currentAccuracy[2] > bestScores.get(bestScores.size() - 1)) {
                     System.out.println("INFO - improved fscore " + currentAccuracy[2]);
+                    bestFitness.add(currentAccuracy[0]);
+                    bestPrecision.add(currentAccuracy[1]);
                     bestScores.add(currentAccuracy[2]);
                     hits.add(iterations);
                     bestSDFG = currentSDFG;
@@ -543,12 +559,6 @@ public class TabuSearch implements Metaheuristics {
                 tabuize(slog, order);
             }
         }
-
-        System.out.println("\u001B[32m" + "Total Mine Time: " + MineTime + "ms" + "\u001B[0m");
-        System.out.println("\u001B[32m" + "Total Modify Time: " + ModifyTime + "ms" + "\u001B[0m");
-        System.out.println("\u001B[32m" + "Total Compute Time: " + ComputeTime + "ms" + "\u001B[0m");
-        System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
-
         eTime = System.currentTimeMillis() - eTime;
         String hitrow = "";
         String fscorerow = "";
@@ -561,6 +571,15 @@ public class TabuSearch implements Metaheuristics {
         writer.println(fscorerow + (double) (eTime) / 1000.0);
         writer.close();
 
+        // Print summary
+        System.out.println("\u001B[32mTotal Mine Time: " + MineTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Modify Time: " + ModifyTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mTotal Compute Time: " + ComputeTime + "ms\u001B[0m");
+        System.out.println("\u001B[32mBest Fitness achieved: " + bestFitness.get(bestFitness.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest Precision achieved: " + bestPrecision.get(bestPrecision.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mBest F-score achieved: " + bestScores.get(bestScores.size() - 1) + "\u001B[0m");
+        System.out.println("\u001B[32mTotal Iterations: " + iterations + "\u001B[0m");
+        System.out.println("\u001B[32mFinal k value reached: " + order + "\u001B[0m");
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
 //        System.out.println("STATS - total tabuizations: " + tabuizations);
 

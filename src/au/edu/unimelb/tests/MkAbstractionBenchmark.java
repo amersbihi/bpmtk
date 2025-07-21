@@ -1,4 +1,4 @@
-package au.edu.unimelb.services;
+package au.edu.unimelb.tests;
 
 import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
@@ -10,12 +10,11 @@ import org.processmining.plugins.InductiveMiner.efficienttree.*;
 import org.processmining.plugins.InductiveMiner.reduceacceptingpetrinet.ReduceAcceptingPetriNetKeepLanguage;
 import org.processmining.processtree.ProcessTree;
 
-import static au.edu.unimelb.services.MkAbstractionTest.createDummySimpleLog;
-import static au.edu.unimelb.services.MkAbstractionTest.loadProcessTree;
+import static au.edu.unimelb.tests.MkAbstractionTest.createDummySimpleLog;
+import static au.edu.unimelb.tests.MkAbstractionTest.loadProcessTree;
 
 import java.io.File;
 import java.util.Locale;
-import java.util.Map;
 
 public class MkAbstractionBenchmark {
 

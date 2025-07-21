@@ -7,6 +7,7 @@ import java.util.Map;
 import au.edu.qut.bpmn.helper.DiagramHandler;
 import au.edu.qut.bpmn.helper.Petrinet2BPMNConverter;
 import au.edu.qut.processmining.log.SimpleLog;
+import au.edu.qut.tree.ProcessTreeToBinaryConverter;
 import org.deckfour.xes.model.XLog;
 import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
 import org.processmining.framework.packages.PackageManager.Canceller;

@@ -3,14 +3,24 @@ package au.edu.unimelb.processmining.optimization;
 import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.unimelb.processmining.accuracy.abstraction.LogAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
+import org.processmining.acceptingpetrinet.models.AcceptingPetriNet;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
 
+import com.raffaeleconforti.conversion.bpmn.BPMNToPetriNetConverter;
+
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.*;
 
 import static java.lang.Thread.sleep;
+import au.edu.unimelb.processmining.accuracy.abstraction.distances.ConfusionMatrix;
+import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree2AcceptingPetriNet;
+import org.processmining.plugins.pnml.exporting.PnmlExportNetToPNML;
+import org.processmining.plugins.kutoolbox.utils.FakePluginContext;
+import org.processmining.models.graphbased.directed.petrinet.Petrinet;
+import java.io.File;
 
 public class IteratedLocalSearch implements Metaheuristics {
 
@@ -57,7 +67,7 @@ public class IteratedLocalSearch implements Metaheuristics {
         return bestSDFG;
     }
 
-    public BPMNDiagram searchOptimalSolution(SimpleLog slog, int order, int maxit, int neighbourhood, int timeout, String modelName) {
+    public BPMNDiagram searchOptimalSolution(SimpleLog slog, int order, int maxit, int neighbourhood, int timeout, String modelName) throws IOException {
         int iterations = 0;
         int icounter = 0;
         perturbations = 0;
@@ -104,7 +114,8 @@ public class IteratedLocalSearch implements Metaheuristics {
         bestSDFG = currentSDFG;
         bestBPMN = currentBPMN;
 
-        while (System.currentTimeMillis() - eTime < timeout && iterations < maxit && currentSDFG != null) {
+        // System.currentTimeMillis() - eTime < timeout &&
+        while ( iterations < maxit && currentSDFG != null) {
             try {
 
                 System.out.println("ITERATION: " + iterations);
@@ -122,7 +133,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     noImprovementCounter++;
                 }
 
-                /*if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
+                if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
                     order++;
                     System.out.println("\u001B[32mINFO - No improvement for " + noImprovementCounter + " iterations, increasing k to " + order + "\u001B[0m");
 
@@ -145,7 +156,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     currentSDFG = bestSDFG;
 
                     noImprovementCounter = 0;
-                }*/
+                }
 
                 iTime = System.currentTimeMillis() - iTime;
                 if (export)
@@ -294,6 +305,11 @@ public class IteratedLocalSearch implements Metaheuristics {
 
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
 //        System.out.println("STATS - total perturbations: " + perturbations);
+
+        Object[] petrinetObj = BPMNToPetriNetConverter.convert(bestBPMN);
+        Petrinet petrinet = (Petrinet) petrinetObj[0];
+        PnmlExportNetToPNML exporter = new PnmlExportNetToPNML();
+        exporter.exportPetriNetToPNMLFile(new FakePluginContext(), petrinet, new File("C:\\Users\\Amer\\gitprojects\\bpmtk\\models\\bestModel1.pnml"));
 
         return bestBPMN;
     }
@@ -534,7 +550,15 @@ public class IteratedLocalSearch implements Metaheuristics {
         System.out.println("\u001B[32mFinal k value reached: " + order + "\u001B[0m");
 
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
-//        System.out.println("STATS - total perturbations: " + perturbations);
+
+        // Assume you have: SimpleLog slog, BPMNDiagram bpmn, int order
+        AcceptingPetriNet net = EfficientTree2AcceptingPetriNet.convert(bestTree);
+        PnmlExportNetToPNML exporter = new PnmlExportNetToPNML();
+        try {
+            exporter.exportPetriNetToPNMLFile(new FakePluginContext(), net.getNet(), new File("C:\\Users\\Amer\\gitprojects\\bpmtk\\models\\ILSTree" + order + "F.pnml"));
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
 
         return bestTree;
     }

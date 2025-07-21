@@ -12,9 +12,9 @@ import au.edu.qut.processmining.miners.splitminer.dfgp.DirectlyFollowGraphPlus;
 import au.edu.qut.processmining.miners.splitminer.ui.dfgp.DFGPUIResult;
 import au.edu.qut.processmining.miners.splitminer.ui.miner.SplitMinerUIResult;
 import au.edu.unimelb.processmining.accuracy.MarkovianAccuracyCalculator;
-import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.compliance.TimeConstraintsChecker;
 import au.edu.unimelb.processmining.optimization.*;
+import au.edu.unimelb.tests.Testing;
 import com.raffaeleconforti.conversion.bpmn.BPMNToPetriNetConverter;
 import com.raffaeleconforti.conversion.petrinet.PetriNetToBPMNConverter;
 import com.raffaeleconforti.log.util.LogImporter;
@@ -26,7 +26,6 @@ import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
 import org.deckfour.xes.model.impl.XLogImpl;
 import org.deckfour.xes.out.XesXmlGZIPSerializer;
-import org.jbpt.petri.log.Log;
 import org.processmining.contexts.uitopia.UIContext;
 import org.processmining.contexts.uitopia.UIPluginContext;
 import org.processmining.fodina.Fodina;
@@ -110,13 +109,13 @@ public class ServiceProvider {
                 //                testProvider.SplitMinerServiceX(fargs);
                 //                break;
                 case AOM:
-                    Testing.accuracyOnModelsSet(MarkovianAccuracyCalculator.Abs.valueOf(fargs[0]), MarkovianAccuracyCalculator.Opd.valueOf(fargs[1]), fargs[2], fargs[3], Integer.valueOf(fargs[4]));
+                    au.edu.unimelb.tests.Testing.accuracyOnModelsSet(MarkovianAccuracyCalculator.Abs.valueOf(fargs[0]), MarkovianAccuracyCalculator.Opd.valueOf(fargs[1]), fargs[2], fargs[3], Integer.valueOf(fargs[4]));
                     break;
                 case AOL:
-                    Testing.accuracyOnLogsSet(MarkovianAccuracyCalculator.Abs.valueOf(fargs[0]), MarkovianAccuracyCalculator.Opd.valueOf(fargs[1]), fargs[2], fargs[3], Integer.valueOf(fargs[4]));
+                    au.edu.unimelb.tests.Testing.accuracyOnLogsSet(MarkovianAccuracyCalculator.Abs.valueOf(fargs[0]), MarkovianAccuracyCalculator.Opd.valueOf(fargs[1]), fargs[2], fargs[3], Integer.valueOf(fargs[4]));
                     break;
                 case AORM:
-                    Testing.accuracyOnRealModelsSet(MarkovianAccuracyCalculator.Abs.valueOf(fargs[0]), MarkovianAccuracyCalculator.Opd.valueOf(fargs[1]), fargs[2], fargs[3], Integer.valueOf(fargs[4]));
+                    au.edu.unimelb.tests.Testing.accuracyOnRealModelsSet(MarkovianAccuracyCalculator.Abs.valueOf(fargs[0]), MarkovianAccuracyCalculator.Opd.valueOf(fargs[1]), fargs[2], fargs[3], Integer.valueOf(fargs[4]));
                     break;
 //                case OM:
 //                    testProvider.omegaMiner(fargs[0]);
@@ -546,7 +545,7 @@ public class ServiceProvider {
         imhpo.hyperparamEvaluation(logPath);
     }
 
-    public void APDO(String logPath, String order, String metaopt, String miner) {
+    public void APDO(String logPath, String order, String metaopt, String miner) throws Exception {
         AutomatedProcessDiscoveryOptimizer optimizer = new AutomatedProcessDiscoveryOptimizer(Integer.valueOf(order), AutomatedProcessDiscoveryOptimizer.MetaOpt.valueOf(metaopt), MinerProxy.MinerTAG.valueOf(miner));
         optimizer.init(logPath);
         if (!metaopt.contains("Tree")) {

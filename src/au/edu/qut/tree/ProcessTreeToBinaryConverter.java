@@ -1,4 +1,4 @@
-package au.edu.unimelb.processmining.optimization;
+package au.edu.qut.tree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +39,20 @@ public class ProcessTreeToBinaryConverter {
         Block block = (Block) node;
         List<Node> children = new ArrayList<>(block.getChildren());
 
+        // Special handling for LOOP nodes with exactly 3 children and the last is tau
+        if ((block instanceof Block.XorLoop || block instanceof Block.DefLoop) && children.size() == 3) {
+            Node lastChild = children.get(2);
+            if (isTauNode(lastChild)) {
+                // Do not restructure, just recurse
+                for (Node child : children) {
+                    if (child != null) {
+                        processTreeToBinaryProcessTree(child);
+                    }
+                }
+                return;
+            }
+        }
+
         // If this block has more than 2 children, restructure it
         if (children.size() > 2) {
             Node leftChild = children.get(0);
@@ -46,11 +60,13 @@ public class ProcessTreeToBinaryConverter {
                 return; // Skip if first child is null
             }
 
-            // Create a new block with the same operator type for the remaining children
-            if(block instanceof Block.XorLoop || block instanceof Block.DefLoop) {
-                Block rightBlock = new AbstractBlock.Xor(UUID.randomUUID(), block.getName());
+            // For LOOP nodes, use XOR for the right subtree
+            Block rightBlock;
+            if (block instanceof Block.XorLoop || block instanceof Block.DefLoop) {
+                rightBlock = new AbstractBlock.Xor(UUID.randomUUID(), block.getName());
+            } else {
+                rightBlock = createBlockOfSameType(block);
             }
-            Block rightBlock = createBlockOfSameType(block);
             if (rightBlock == null) {
                 return; // Skip if we couldn't create the right block
             }
@@ -133,6 +149,18 @@ public class ProcessTreeToBinaryConverter {
             edge.getTarget().removeIncomingEdge(edge);
             block.getProcessTree().removeEdge(edge);
         }
+    }
+
+    /**
+     * Checks if a node is a tau (silent) node.
+     * This implementation assumes tau nodes are labeled "tau" or have a specific type.
+     * Adjust this method as needed for your process tree implementation.
+     */
+    private static boolean isTauNode(Node node) {
+        if (node == null) return false;
+        // Check by name or type; adjust as needed for your framework
+        String name = node.getName();
+        return name != null && name.trim().equalsIgnoreCase("tau");
     }
 
     /**
