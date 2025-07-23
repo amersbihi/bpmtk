@@ -656,6 +656,7 @@ public class MarkovianAutomatonAbstraction {
         visitedStates.remove(state);
     }
 
+
     public Map<Character, Integer> getCharToIDs() {
         return CharToIDs;
     }
