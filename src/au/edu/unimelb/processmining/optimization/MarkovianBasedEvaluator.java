@@ -3,9 +3,12 @@ package au.edu.unimelb.processmining.optimization;
 import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton.MarkovianAutomatonAbstraction;
 import au.edu.unimelb.processmining.accuracy.abstraction.subtrace.SubtraceAbstraction;
+import com.aliasi.util.Strings;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.plugins.InductiveMiner.efficienttree.EfficientTree;
+import org.python.antlr.ast.Str;
 
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 public class MarkovianBasedEvaluator implements Callable<Object[]> {
@@ -16,6 +19,7 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
 
     private EfficientTree tree;
     private BPMNDiagram bpmn;
+    private ArrayList<String> differences;
 
     //private SimpleDirectlyFollowGraph sdfg;
     private int order;
@@ -36,6 +40,24 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
         this.slog = slog;
     }
 
+    public MarkovianBasedEvaluator(SubtraceAbstraction staLog, ArrayList<String> differences, SimpleLog slog, MinerProxy minerProxy, BPMNDiagram bpmn, int order) {
+        this.staLog = staLog;
+        this.proxy = minerProxy;
+        this.bpmn = bpmn;
+        this.order = order;
+        this.slog = slog;
+        this.differences = differences;
+    }
+
+    public MarkovianBasedEvaluator(SubtraceAbstraction staLog, ArrayList<String> differences, SimpleLog slog, MinerProxy minerProxy, EfficientTree tree, int order) {
+        this.staLog = staLog;
+        this.proxy = minerProxy;
+        this.tree = tree;
+        this.order = order;
+        this.slog = slog;
+        this.differences = differences;
+    }
+
     @Override
     public Object[] call() {
         SubtraceAbstraction staProcess;
@@ -54,6 +76,12 @@ public class MarkovianBasedEvaluator implements Callable<Object[]> {
                 staProcess = SubtraceAbstraction.abstractProcessBehaviour(this.bpmn, order, slog);
             } else {
                 throw new IllegalStateException("Neither tree nor BPMN is initialized in MarkovianBasedEvaluator.");
+            }
+
+            if (differences != null) {
+                for (String dif : differences) {
+                    staProcess.removeUnusedSubtraces(dif);
+                }
             }
 
             if (staProcess == null) return new Object[]{0.0, 0.0, 0.0, null, tree != null ? tree : bpmn};

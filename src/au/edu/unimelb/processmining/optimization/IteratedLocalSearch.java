@@ -40,6 +40,7 @@ public class IteratedLocalSearch implements Metaheuristics {
     private ArrayList<Double> bestScores;
     private ArrayList<Double> bestFitness;
     private ArrayList<Double> bestPrecision;
+    private SubtraceAbstraction bestStaProcess;
 
     private ArrayList<Integer> hits;
     Double[] currentAccuracy = new Double[3];
@@ -80,6 +81,7 @@ public class IteratedLocalSearch implements Metaheuristics {
         String subtrace;
         Set<SimpleDirectlyFollowGraph> neighbours = new HashSet<>();
         Object[] result;
+        ArrayList<String> differences;
 
         SimpleDirectlyFollowGraph tmpSDFG;
         BPMNDiagram tmpBPMN;
@@ -115,7 +117,7 @@ public class IteratedLocalSearch implements Metaheuristics {
         bestBPMN = currentBPMN;
 
         // System.currentTimeMillis() - eTime < timeout &&
-        while ( iterations < maxit && currentSDFG != null) {
+        while ( System.currentTimeMillis() - eTime < timeout && iterations < maxit && currentSDFG != null) {
             try {
 
                 System.out.println("ITERATION: " + iterations);
@@ -133,7 +135,9 @@ public class IteratedLocalSearch implements Metaheuristics {
                     noImprovementCounter++;
                 }
 
-                if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
+                /*if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
+                    differences = staProcess.computeDifferences(staLog);
+
                     order++;
                     System.out.println("\u001B[32mINFO - No improvement for " + noImprovementCounter + " iterations, increasing k to " + order + "\u001B[0m");
 
@@ -141,7 +145,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     staLog = LogAbstraction.subtrace(slog, order);
 
                     // Re-evaluate best tree at new k
-                    MarkovianBasedEvaluator reevaluateBest = new MarkovianBasedEvaluator(staLog, slog, minerProxy, bestBPMN, order);
+                    MarkovianBasedEvaluator reevaluateBest = new MarkovianBasedEvaluator(staLog, differences, slog, minerProxy, bestBPMN, order);
                     ExecutorService reevaluateService = Executors.newSingleThreadExecutor();
                     Future<Object[]> reevaluateResult = reevaluateService.submit(reevaluateBest);
                     Object[] newResult = reevaluateResult.get(timeout, TimeUnit.MILLISECONDS);
@@ -156,7 +160,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     currentSDFG = bestSDFG;
 
                     noImprovementCounter = 0;
-                }
+                }*/
 
                 iTime = System.currentTimeMillis() - iTime;
                 if (export)
@@ -327,6 +331,7 @@ public class IteratedLocalSearch implements Metaheuristics {
         String subtrace;
         Set<SimpleDirectlyFollowGraph> neighbours = new HashSet<>();
         Object[] result;
+        ArrayList<String> differences;
 
         SimpleDirectlyFollowGraph tmpSDFG;
         EfficientTree tmpTree;
@@ -338,6 +343,7 @@ public class IteratedLocalSearch implements Metaheuristics {
         bestScores = new ArrayList<>();
         bestFitness = new ArrayList<>();
         bestPrecision = new ArrayList<>();
+
 
         writer = null;
         try {
@@ -361,6 +367,7 @@ public class IteratedLocalSearch implements Metaheuristics {
         bestSDFG = currentSDFG;
         bestTree = currentTree;
 
+        // System.currentTimeMillis() - eTime < timeout &&
         while (System.currentTimeMillis() - eTime < timeout && iterations < maxit && currentSDFG != null) {
             try {
 
@@ -380,6 +387,9 @@ public class IteratedLocalSearch implements Metaheuristics {
                 iTime = System.currentTimeMillis() - iTime;
 
                 /*if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
+                    // get traces that are in the model but not in the log and ectend with every rising of k
+                    differences = staProcess.computeDifferences(staLog);
+
                     order++;
                     System.out.println("\u001B[32mINFO - No improvement for " + noImprovementCounter + " iterations, increasing k to " + order + "\u001B[0m");
 
@@ -387,7 +397,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     staLog = LogAbstraction.subtraceTree(slog, order);
 
                     // Re-evaluate best tree at new k
-                    MarkovianBasedEvaluator reevaluateBest = new MarkovianBasedEvaluator(staLog, slog, minerProxy, bestTree, order);
+                    MarkovianBasedEvaluator reevaluateBest = new MarkovianBasedEvaluator(staLog, differences, slog, minerProxy, bestTree, order);
                     ExecutorService reevaluateService = Executors.newSingleThreadExecutor();
                     Future<Object[]> reevaluateResult = reevaluateService.submit(reevaluateBest);
                     Object[] newResult = reevaluateResult.get(timeout, TimeUnit.MILLISECONDS);
@@ -551,11 +561,10 @@ public class IteratedLocalSearch implements Metaheuristics {
 
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
 
-        // Assume you have: SimpleLog slog, BPMNDiagram bpmn, int order
         AcceptingPetriNet net = EfficientTree2AcceptingPetriNet.convert(bestTree);
         PnmlExportNetToPNML exporter = new PnmlExportNetToPNML();
         try {
-            exporter.exportPetriNetToPNMLFile(new FakePluginContext(), net.getNet(), new File("C:\\Users\\Amer\\gitprojects\\bpmtk\\models\\ILSTree" + order + "F.pnml"));
+            exporter.exportPetriNetToPNMLFile(new FakePluginContext(), net.getNet(), new File("C:\\Users\\Amer\\gitprojects\\bpmtk\\models\\ILSTree" + order + ".pnml"));
         } catch (java.io.IOException e) {
             e.printStackTrace();
         }

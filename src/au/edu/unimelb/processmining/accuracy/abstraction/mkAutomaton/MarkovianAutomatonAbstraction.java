@@ -19,17 +19,19 @@ public class MarkovianAutomatonAbstraction {
     public static void main(String[] args) throws Exception {
     }
 
+    // for log-model use we align the ids for the activities in the log with the ones of the model
     public MarkovianAutomatonAbstraction(EfficientTree tree, int k, SimpleLog slog) {
         matchIDsTree(tree, slog);
         this.automaton = computeMk(tree, tree.getRoot(), k);
     }
 
-    // used for testing
+    // for model-model use we align the second trees ids to the one of the first tree (rest activities have their own unique id)
     public MarkovianAutomatonAbstraction(EfficientTree tree, int k) {
+        initializeLabelMapping(tree);                                                   // delete this line for test
         this.automaton = computeMk(tree, tree.getRoot(), k);
     }
 
-    public Automaton computeMk(EfficientTree tree, int node, int k) {
+    private Automaton computeMk(EfficientTree tree, int node, int k) {
         if (tree.isActivity(node)) {
             return mkLeafNode(IDsToChar.get(tree.getActivity(node)), k);
         }

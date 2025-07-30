@@ -18,5 +18,7 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="ivy" level="project" />
+    <orderEntry type="library" name="exp4j-0.3.8" level="project" />
+    <orderEntry type="library" name="lib1" level="project" />
   </component>
 </module>

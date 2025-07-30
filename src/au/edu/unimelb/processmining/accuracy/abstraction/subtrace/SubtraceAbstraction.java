@@ -14,6 +14,8 @@ import de.drscc.importer.ImportProcessModel;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.petrinet.Petrinet;
 import org.processmining.models.semantics.petrinet.Marking;
+import org.python.antlr.ast.Str;
+import org.python.antlr.op.Sub;
 
 import java.util.*;
 
@@ -50,6 +52,10 @@ public class SubtraceAbstraction extends Abstraction {
             subtrace.frequency = frequency;
             subtraces.put(subtrace.print(), subtrace);
         }
+    }
+
+    public void removeUnusedSubtraces(String subtraceK) {
+        subtraces.entrySet().removeIf(e -> e.getKey().contains(subtraceK));
     }
 
     public double computeMAFitness(SubtraceAbstraction processAbstraction) {

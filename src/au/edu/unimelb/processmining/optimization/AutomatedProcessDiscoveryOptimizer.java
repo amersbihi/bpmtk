@@ -129,8 +129,8 @@ public class AutomatedProcessDiscoveryOptimizer {
             e.printStackTrace();
         }*/
 
-        //EfficientTree2processTree.convert(tree);
-        //exportTreeAsPTML(tree, ".\\models\\ptml" + metaheuristics.toString() + order + ".ptml");
+        EfficientTree2processTree.convert(tree);
+        exportTreeAsPTML(tree, ".\\models\\ptml" + metaheuristics.toString() + order + ".ptml");
         //exportTree(tree, "./" + metaheuristics.toString() + "_" + modelName + ".ptml");
 
         return tree;
