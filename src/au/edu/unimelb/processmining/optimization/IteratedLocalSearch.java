@@ -135,7 +135,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     noImprovementCounter++;
                 }
 
-                /*if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
+                if (noImprovementCounter >= maxIterationsBeforeRaise && order < maxK) {
                     differences = staProcess.computeDifferences(staLog);
 
                     order++;
@@ -160,7 +160,7 @@ public class IteratedLocalSearch implements Metaheuristics {
                     currentSDFG = bestSDFG;
 
                     noImprovementCounter = 0;
-                }*/
+                }
 
                 iTime = System.currentTimeMillis() - iTime;
                 if (export)
