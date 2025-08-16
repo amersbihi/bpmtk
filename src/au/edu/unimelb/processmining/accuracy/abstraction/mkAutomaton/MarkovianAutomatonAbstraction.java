@@ -7,8 +7,12 @@ import org.processmining.plugins.InductiveMiner.efficienttree.*;
 import java.util.*;
 
 public class MarkovianAutomatonAbstraction {
+    private enum Mode {match, init}
 
-    public static int artificialMarker = 10_000;
+    private final Mode mode;
+
+    public static final int artificialMarker = 10_000;
+    private static final int synthetic = 20_000;
 
     private Map<Integer, Character> IDsToChar = new HashMap<>();
     private Map<Character, Integer> CharToIDs = new HashMap<>();
@@ -21,30 +25,29 @@ public class MarkovianAutomatonAbstraction {
 
     // for log-model use we align the ids for the activities in the log with the ones of the model
     public MarkovianAutomatonAbstraction(EfficientTree tree, int k, SimpleLog slog) {
+        this.mode = Mode.match;
         matchIDsTree(tree, slog);
         this.automaton = computeMk(tree, tree.getRoot(), k);
     }
 
     // for model-model use we align the second trees ids to the one of the first tree (rest activities have their own unique id)
     public MarkovianAutomatonAbstraction(EfficientTree tree, int k) {
-        initializeLabelMapping(tree);                                                   // delete this line for test
+        this.mode = Mode.init;
+        initializeLabelMapping(tree);
         this.automaton = computeMk(tree, tree.getRoot(), k);
     }
 
     private Automaton computeMk(EfficientTree tree, int node, int k) {
         if (tree.isActivity(node)) {
-            return mkLeafNode(IDsToChar.get(tree.getActivity(node)), k);
+            if (mode == Mode.match) {
+                return mkLeafNode(IDsToChar.get(tree.getActivity(node)), k);
+            } else {
+                return mkLeafNode(tree.getActivityName(node).toCharArray()[0], k);
+            }
         }
         if (tree.isTau(node)) {
             return mkLeafNode('τ', k);
         }
-
-        /*if (tree.isActivity(node)) {
-            return mkLeafNode(tree.getActivityName(node).toCharArray()[0], k);              // for testing in MkAbstractionTest.class, we dont need a
-        }                                                                                   // mapping from log activities to tree activities
-        if (tree.isTau(node)) {
-            return mkLeafNode('τ', k);
-        }*/
 
         Automaton left = computeMk(tree, tree.getChild(node, 0), k);
         Automaton right = computeMk(tree, tree.getChild(node, 1), k);
@@ -309,9 +312,7 @@ public class MarkovianAutomatonAbstraction {
             public boolean equals(Object o) {
                 if (!(o instanceof PES)) return false;
                 PES other = (PES) o;
-                return origState.equals(other.origState) &&
-                        memory.equals(other.memory) &&
-                        fromInitial == other.fromInitial;
+                return origState.equals(other.origState) && memory.equals(other.memory) && fromInitial == other.fromInitial;
             }
 
             @Override
@@ -341,8 +342,7 @@ public class MarkovianAutomatonAbstraction {
             State combined = pesToState.get(current);
 
             // Accept if memory has length k, OR if on init path and at original final state
-            if (currentMemory.length() == k ||
-                    (fromInitial && currentMemory.length() > 0 && currentOrig.isAccept())) {
+            if (currentMemory.length() == k || (fromInitial && currentMemory.length() > 0 && currentOrig.isAccept())) {
                 combined.setAccept(true);
                 continue;
             }
@@ -590,21 +590,31 @@ public class MarkovianAutomatonAbstraction {
     public void initializeLabelMapping(EfficientTree tree) {
         IDsToChar.clear();
         CharToIDs.clear();
+
         char nextChar = 'a';
+        for (int id = 0; id < tree.getInt2activity().length; id++) {
+            String act = tree.getInt2activity()[id];
+            if (act == null) continue;
 
+            // skip reserved characters
+            while (nextChar == '-' || nextChar == '+') nextChar++;
 
-        for (int i = 0; i < tree.getInt2activity().length; i++) {
-            String activity = tree.getInt2activity()[i];
-            if (activity != null && !IDsToChar.containsKey(i)) {
-                char c = nextChar++;
-                IDsToChar.put(i, c);
-                CharToIDs.put(c, i);
+            if (!IDsToChar.containsKey(id)) {
+                IDsToChar.put(id, nextChar);
+                CharToIDs.put(nextChar, id);
+                nextChar++;
             }
+        }
+
+        // boundary marker "-" <-> ARTIFICIAL_MARKER
+        if (!CharToIDs.containsKey('-')) {
+            CharToIDs.put('-', artificialMarker);
+            IDsToChar.put(artificialMarker, '-');
         }
     }
 
     // for use with actual logs with activities
-    public void matchIDsTree(EfficientTree tree, SimpleLog log) {
+    /*public void matchIDsTree(EfficientTree tree, SimpleLog log) {
         // Clear previous mappings
         CharToIDs.clear();
         IDsToChar.clear();
@@ -629,6 +639,94 @@ public class MarkovianAutomatonAbstraction {
             CharToIDs.put('-', artificialMarker);
             IDsToChar.put(artificialMarker, '-');
         }
+    }*/
+
+
+    /**
+     * Map every tree activity id (tid) to a unique char (IDsToChar),
+     * and map that char to a global integer id (CharToIDs).
+     * If a tree label exists in the log, use the log's id as global id.
+     * Otherwise assign a synthetic global id so the activity still participates.
+     * Also assigns chars for log-only labels (optional, for diagnostics/decoding).
+     */
+    public void matchIDsTree(EfficientTree tree, SimpleLog log) {
+        // Clear previous mappings
+        CharToIDs.clear();
+        IDsToChar.clear();
+
+        Map<String, Integer> logEIDs = log.getReverseMap();
+        Map<String, Integer> logEIDsNorm = new HashMap<>();
+        for (Map.Entry<String, Integer> e : logEIDs.entrySet()) {
+            String n = norm(e.getKey());
+            if (n != null) logEIDsNorm.put(n, e.getValue());
+        }
+
+        String[] int2act = tree.getInt2activity();
+        Set<String> treeLabelSet = new HashSet<>();
+        for (String s : int2act) if (s != null) treeLabelSet.add(s);
+
+        char nextChar = 'a';
+        Set<Character> usedChars = new HashSet<>();
+
+        int synt = synthetic;
+
+        for (int tid = 0; tid < int2act.length; tid++) {
+            String label = int2act[tid];
+            if (label == null) continue;
+
+            Integer globalId = logEIDs.get(label);
+            if (globalId == null) {
+                globalId = logEIDsNorm.get(norm(label));
+            }
+            if (globalId == null) {
+                globalId = synt++;
+            }
+
+            while (isReserved(nextChar) || usedChars.contains(nextChar)) {
+                nextChar++;
+            }
+            char chosen = nextChar++;
+            usedChars.add(chosen);
+
+            IDsToChar.put(tid, chosen);     // tree activity id -> char (used by computeMk)
+            CharToIDs.put(chosen, globalId); // char -> global id (used for decoding)
+        }
+
+        for (Map.Entry<String, Integer> e : logEIDs.entrySet()) {
+            String label = e.getKey();
+            if (label == null || treeLabelSet.contains(label)) continue;
+
+            boolean alreadyMapped = false;
+            for (Map.Entry<Character, Integer> ce : CharToIDs.entrySet()) {
+                if (Objects.equals(ce.getValue(), e.getValue())) {
+                    alreadyMapped = true;
+                    break;
+                }
+            }
+            if (alreadyMapped) continue;
+
+            while (isReserved(nextChar) || usedChars.contains(nextChar)) {
+                nextChar++;
+            }
+            char chosen = nextChar++;
+            usedChars.add(chosen);
+
+            CharToIDs.put(chosen, e.getValue());
+            IDsToChar.put(e.getValue(), chosen);
+        }
+        if (!CharToIDs.containsKey('-')) {
+            CharToIDs.put('-', artificialMarker);
+            IDsToChar.put(artificialMarker, '-');
+        }
+    }
+
+    private static boolean isReserved(char c) {
+        return c == '-' || c == '+';
+    }
+
+    private static String norm(String s) {
+        if (s == null) return null;
+        return s.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
     public Map<String, Integer> getAcceptedStrings() {
@@ -658,9 +756,12 @@ public class MarkovianAutomatonAbstraction {
         visitedStates.remove(state);
     }
 
-
     public Map<Character, Integer> getCharToIDs() {
         return CharToIDs;
+    }
+
+    public Map<Integer, Character> getIDsToChar() {
+        return IDsToChar;
     }
 
     public Automaton getAutomaton() {

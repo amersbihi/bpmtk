@@ -561,13 +561,13 @@ public class IteratedLocalSearch implements Metaheuristics {
 
         System.out.println("eTIME - " + (double) (eTime) / 1000.0 + "s");
 
-        AcceptingPetriNet net = EfficientTree2AcceptingPetriNet.convert(bestTree);
+        /*AcceptingPetriNet net = EfficientTree2AcceptingPetriNet.convert(bestTree);
         PnmlExportNetToPNML exporter = new PnmlExportNetToPNML();
         try {
             exporter.exportPetriNetToPNMLFile(new FakePluginContext(), net.getNet(), new File("C:\\Users\\Amer\\gitprojects\\bpmtk\\models\\ILSTree" + order + ".pnml"));
         } catch (java.io.IOException e) {
             e.printStackTrace();
-        }
+        }*/
 
         return bestTree;
     }
