@@ -1,9 +1,16 @@
 package au.edu.unimelb.processmining.accuracy.abstraction.mkAutomaton;
 
+import au.edu.qut.bpmn.structuring.graph.Path;
 import au.edu.qut.processmining.log.SimpleLog;
 import dk.brics.automaton.*;
 import org.processmining.plugins.InductiveMiner.efficienttree.*;
+import org.processmining.processtree.ProcessTree;
+import org.processmining.processtree.ptml.importing.PtmlImportTree;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class MarkovianAutomatonAbstraction {
@@ -100,7 +107,7 @@ public class MarkovianAutomatonAbstraction {
         a.expandSingleton();
         b.expandSingleton();
 
-        // unite both Automatons (libs union function is sufficent)
+        // unite both Automata
         Automaton result = BasicOperations.union(a, b);
 
         result.removeDeadTransitions();
@@ -613,7 +620,7 @@ public class MarkovianAutomatonAbstraction {
         }
     }
 
-    // for use with actual logs with activities
+    // old match ids method
     /*public void matchIDsTree(EfficientTree tree, SimpleLog log) {
         // Clear previous mappings
         CharToIDs.clear();
@@ -640,7 +647,6 @@ public class MarkovianAutomatonAbstraction {
             IDsToChar.put(artificialMarker, '-');
         }
     }*/
-
 
     /**
      * Map every tree activity id (tid) to a unique char (IDsToChar),
