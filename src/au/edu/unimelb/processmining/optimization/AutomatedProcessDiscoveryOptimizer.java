@@ -94,7 +94,7 @@ public class AutomatedProcessDiscoveryOptimizer {
         }
 
         //exportBPMN(bpmn, ".\\models\\bpmn" + metaheuristics.toString() + order + ".bpmn");
-        //exportBPMN(bpmn, "./" + metaheuristics.toString() + "_" + modelName + ".bpmn");
+        exportBPMN(bpmn, "C:\\Users\\Amer\\Downloads\\Evaluation models" + metaheuristics.toString() + "_" + modelName + ".bpmn");
 
         return bpmn;
     }
@@ -130,8 +130,8 @@ public class AutomatedProcessDiscoveryOptimizer {
         }*/
 
         EfficientTree2processTree.convert(tree);
-        exportTreeAsPTML(tree, ".\\models\\ptml" + metaheuristics.toString() + order + ".ptml");
-        //exportTree(tree, "./" + metaheuristics.toString() + "_" + modelName + ".ptml");
+        exportTreeAsPTML(tree, "C:\\Users\\Amer\\Downloads\\Raising k models\\" + metaheuristics.toString() + order + ".ptml");
+        exportTree(tree, "./" + metaheuristics.toString() + "_" + modelName + ".ptml");
 
         return tree;
     }
